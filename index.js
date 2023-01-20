@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, CURSOR_FLAGS, ObjectId } = require('mongodb');
 const jwt = require('jsonwebtoken');
 const app = express();
 const port = process.env.PORT || 5000;
@@ -86,6 +86,84 @@ async function run(){
                })
             }
         });
+
+        app.post('/addservice', async(req,res)=>{
+            try {
+                const data = req.body;
+                const result = await serviceCollection.insertOne(data);
+                res.send({
+                    success: true,
+                    data: result
+                })
+            } catch (error) {
+                res.send({
+                    success: false,
+                    message: error.message
+                })
+            }
+        });
+
+        app.get('/services', async(req,res)=>{
+            try {
+                const result = await serviceCollection.find({}).toArray();
+                res.send({
+                    success: true,
+                    data: result
+                })
+            } catch (error) {
+                res.send({
+                    success: false,
+                    message: error.message
+                })
+            }
+        });
+
+        app.get('/servicedetails', async(req,res)=>{
+            try {
+                const name = req.query.id;
+                console.log(name);
+                const query = {name:name};
+                const result = await serviceCollection.findOne(query);
+                console.log(result);
+                res.send({
+                    success: true,
+                    data: result
+                })
+            } catch (error) {
+                res.send({
+                    success: false,
+                    message: error.message
+                })
+            }
+            
+        });
+
+        app.patch('/servicedetails', async(req,res)=>{
+            try {
+                const id = req.query.id;
+                const data = req.body;
+                const searchobj = await serviceCollection.findOne({_id:ObjectId(id)});
+                searchobj.reviews.push(data);
+                const filter = { _id: ObjectId(id) };
+                const options = { upsert: true };
+                const updateDoc = {
+                    $set: {
+                        reviews: searchobj.reviews,
+                        Totalreviews: searchobj.Totalreviews + 1 
+                    }
+                };
+                const updateobj = await serviceCollection.updateOne(filter, updateDoc, options);
+                res.send({
+                    success: true,
+                    data: updateobj
+                })
+            } catch (error) {
+                res.send({
+                    success: false,
+                    message: error.message
+                })
+            }
+        })
 
 
 
