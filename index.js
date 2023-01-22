@@ -117,6 +117,21 @@ async function run(){
             }
         });
 
+        app.get('/popular', async(req, res) => {
+            try {
+                const result = await serviceCollection.find({}).sort({'Totalreviews': -1}).limit(4).toArray();
+                res.send({
+                    success: true,
+                    data: result
+                })
+            } catch (error) {
+                res.send({
+                    success: false,
+                    message: error.message
+                })
+            }
+        })
+
         app.get('/servicedetails', async(req,res)=>{
             try {
                 const name = req.query.id;
@@ -158,6 +173,28 @@ async function run(){
                 })
             } catch (error) {
                 res.send({
+                    success: false,
+                    message: error.message
+                })
+            }
+        })
+
+        app.get('/reviews', async(req, res) =>{
+            try {
+                const result = await serviceCollection.find({}).project({"reviews":1, _id: 0}).toArray();
+                const allReviews = []
+                result.forEach(data => {
+                    const singleReview = data.reviews;
+                    singleReview.map(review => allReviews.push(review))
+                })
+                const filter = allReviews.filter(excellent => excellent.rating === "Excellent")
+
+                res.send({
+                    success: true,
+                    data: filter
+                })
+            } catch (error) {
+                res,send({
                     success: false,
                     message: error.message
                 })
