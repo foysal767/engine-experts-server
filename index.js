@@ -66,7 +66,7 @@ async function run(){
 
 
         // send jet token for user
-        // jwt secret key (26ef39810f0859796841b50cf35ed9281363238c26b58240ec4182a1a290119a9e0975af60dca9cd3a8f31042f59eb5a7b58247ee69294ab54d25c58c2b0c25f)
+
 
         // require('crypto').randomBytes(64).toString('hex')
 
@@ -85,6 +85,24 @@ async function run(){
                })
             }
         });
+
+
+        app.post('/users', async (req, res) => {
+            try {
+                const user = req.body;
+                console.log(user)
+                const result = await userCollection.insertOne(user);
+                res.send({
+                    success:true,
+                    data: result
+                })
+            } catch (error) {
+                res.send({
+                    success: false,
+                    message:error.message
+                })
+            }
+        })
 
         app.post('/addservice', async(req,res)=>{
             try {
