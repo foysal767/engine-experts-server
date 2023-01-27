@@ -158,18 +158,24 @@ async function run() {
           campaignName: data.campname,
         });
 
-        if (findCamp) {
+          if (findCamp) {
+              const duplicate = findCamp.services.find(service => service.name === data.service);
+              if (duplicate) {
+                  res.send({
+                      success: false,
+                      message:"This product is already added"
+                  })
+                  return;
+              }
           const filterService = await serviceCollection.findOne({
-            name: service,
+              name: data.service,
           });
-
           const updatedService = {
             ...filterService,
-            discountPrice: discountprice,
-          };
-
+            discountPrice: data.discountprice
+            };
           findCamp.services.push(updatedService);
-          const filter = { campaignName: data.campname };
+            const filter = { campaignName: data.campname };
           const options = { upsert: true };
           const updateDoc = {
             $set: {
@@ -182,27 +188,31 @@ async function run() {
             updateDoc,
             options
           );
-
-          console.log(result);
           res.send({
             success: true,
             data: result,
           });
+            return;
         }
-        const addedCampaign = await campaignCollection.insertOne(campaign);
-        const filterService = await serviceCollection.findOne({
-          name: service,
+          const addedCampaign = await campaignCollection.insertOne(campaign);
+          const findnewCamp = await campaignCollection.findOne({
+          campaignName: data.campname,
         });
+        const filterService = await serviceCollection.findOne({
+          name: data.service,
+        });
+          
+        
         const updatedService = {
-          ...filterService,
-          discountPrice: discountprice,
+            ...filterService,
+            discountPrice: data.discountprice,
         };
-        findCamp.services.push(updatedService);
+        findnewCamp.services.push(updatedService);
         const filter = { campaignName: data.campname };
         const options = { upsert: true };
         const updateDoc = {
           $set: {
-            services: findCamp.services,
+            services: findnewCamp.services,
           },
         };
         const result = await campaignCollection.updateOne(
@@ -210,7 +220,6 @@ async function run() {
           updateDoc,
           options
         );
-        console.log(result);
         res.send({
           success: true,
           data: result,
