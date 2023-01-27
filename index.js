@@ -99,6 +99,37 @@ async function run() {
       }
     });
 
+    app.post("/users", async (req, res) => {
+      try {
+        const user = req.body;
+        const result = await userCollection.insertOne(user);
+        res.send({
+          success: true,
+          data: result,
+        });
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        });
+      }
+    });
+
+    app.get("/users", async (req, res) => {
+      try {
+        const result = await userCollection.find({}).toArray();
+        res.send({
+          success: true,
+          data: result,
+        });
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        });
+      }
+    });
+
     app.post("/addservice", async (req, res) => {
       try {
         const data = req.body;
@@ -158,24 +189,26 @@ async function run() {
           campaignName: data.campname,
         });
 
-          if (findCamp) {
-              const duplicate = findCamp.services.find(service => service.name === data.service);
-              if (duplicate) {
-                  res.send({
-                      success: false,
-                      message:"This product is already added"
-                  })
-                  return;
-              }
+        if (findCamp) {
+          const duplicate = findCamp.services.find(
+            (service) => service.name === data.service
+          );
+          if (duplicate) {
+            res.send({
+              success: false,
+              message: "This product is already added",
+            });
+            return;
+          }
           const filterService = await serviceCollection.findOne({
-              name: data.service,
+            name: data.service,
           });
           const updatedService = {
             ...filterService,
-            discountPrice: data.discountprice
-            };
+            discountPrice: data.discountprice,
+          };
           findCamp.services.push(updatedService);
-            const filter = { campaignName: data.campname };
+          const filter = { campaignName: data.campname };
           const options = { upsert: true };
           const updateDoc = {
             $set: {
@@ -192,20 +225,19 @@ async function run() {
             success: true,
             data: result,
           });
-            return;
+          return;
         }
-          const addedCampaign = await campaignCollection.insertOne(campaign);
-          const findnewCamp = await campaignCollection.findOne({
+        const addedCampaign = await campaignCollection.insertOne(campaign);
+        const findnewCamp = await campaignCollection.findOne({
           campaignName: data.campname,
         });
         const filterService = await serviceCollection.findOne({
           name: data.service,
         });
-          
-        
+
         const updatedService = {
-            ...filterService,
-            discountPrice: data.discountprice,
+          ...filterService,
+          discountPrice: data.discountprice,
         };
         findnewCamp.services.push(updatedService);
         const filter = { campaignName: data.campname };
@@ -220,6 +252,22 @@ async function run() {
           updateDoc,
           options
         );
+        res.send({
+          success: true,
+          data: result,
+        });
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        });
+      }
+    });
+
+    app.get("/campaign", async (req, res) => {
+      try {
+        const result = await campaignCollection.find({}).toArray();
+        console.log(result);
         res.send({
           success: true,
           data: result,
