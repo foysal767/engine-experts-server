@@ -44,9 +44,7 @@ async function run() {
     const adminCollection = client.db("Engine-Experts").collection("admins");
     const reviewCollection = client.db("Engine-Experts").collection("reviews");
     const ordersCollection = client.db("Engine-Experts").collection("orders");
-    const paymentsCollection = client
-      .db("Engine-Experts")
-      .collection("payments");
+    const paymentsCollection = client.db("Engine-Experts").collection('payments');
 
     // verify jwt middleware
     function verifyJWT(req, res, next) {
@@ -348,6 +346,38 @@ async function run() {
         });
       }
     });
+    // payments-intregrate
+  //   app.post('/create-payment-intent', async (req, res) => {
+  //     const booking = req.body;
+  //     const price = booking.price;
+  //     const amount = price * 100;
+
+  //     const paymentIntent = await stripe.paymentIntents.create({
+  //         currency: 'usd',
+  //         amount: amount,
+  //         "payment_method_types": [
+  //             "card"
+  //         ]
+  //     });
+  //     res.send({
+  //         clientSecret: paymentIntent.client_secret,
+  //     });
+  // });
+
+  // app.post('/payments', async (req, res) => {
+  //     const payment = req.body;
+  //     const result = await paymentsCollection.insertOne(payment);
+  //     const id = payment.bookingId
+  //     const filter = { _id: ObjectId(id) }
+  //     const updatedDoc = {
+  //         $set: {
+  //             paid: true,
+  //             transactionId: payment.transactionId
+  //         }
+  //     }
+  //     const updatedResult = await bookingsCollection.updateOne(filter, updatedDoc)
+  //     res.send(result);
+  // })
 
     app.get("/reviews", async (req, res) => {
       try {
