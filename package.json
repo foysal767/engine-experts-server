@@ -17,14 +17,5 @@
     "jsonwebtoken": "^9.0.0",
     "mongodb": "^4.13.0",
     "stripe": "^11.8.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/foysal767/engine-experts-server.git"
-  },
-  "bugs": {
-    "url": "https://github.com/foysal767/engine-experts-server/issues"
-  },
-  "homepage": "https://github.com/foysal767/engine-experts-server#readme",
-  "description": ""
+  }
 }
