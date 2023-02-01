@@ -375,6 +375,39 @@ async function run() {
             message: error.message,
           });
       }
+
+      app.get('/userReviews', async(req, res) => {
+        try {
+          const email = req.query.email;
+          const result = await serviceCollection
+          .find({})
+          .project({ reviews: 1, _id: 0, name: 1, image: 1 })
+          .toArray();
+        const allReviews = [];
+        result.forEach((data) => {
+          console.log(data);
+          const {name, image, reviews} = data;
+          reviews?.map((review) => {
+            const singleData = {name, image, review}
+            allReviews.push(singleData);
+          });
+        });
+        console.log(allReviews);
+        const filter = allReviews.filter(
+          (excellent) => excellent.review.email === email
+        );
+          res.send({
+            success: true,
+            data: filter
+          })
+        } catch (error) {
+          res.send({
+            success: false,
+            message: error.message
+          })
+        }
+      })
+
     });
   } catch (error) {
     console.log(error.name, error.message);
