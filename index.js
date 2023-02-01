@@ -107,7 +107,6 @@ async function run() {
       try {
         const email = req.query.email;
         const result = await adminCollection.findOne({ email: email });
-        console.log(result)
         if (result) {
           res.send({
             success:true
@@ -161,7 +160,6 @@ async function run() {
       try {
         const type = req.query.type;
         const result = await userCollection.find({ accType: type }).toArray();
-        console.log(result)
         res.send({
           success: true,
           data: result,
@@ -311,7 +309,6 @@ async function run() {
     app.get("/campaign", async (req, res) => {
       try {
         const result = await campaignCollection.find({}).toArray();
-        console.log(result);
         res.send({
           success: true,
           data: result,
@@ -475,14 +472,12 @@ async function run() {
           .toArray();
         const allReviews = [];
         result.forEach((data) => {
-          console.log(data);
           const {name, image, reviews} = data;
           reviews?.map((review) => {
             const singleData = {name, image, review}
             allReviews.push(singleData);
           });
         });
-        console.log(allReviews);
         const filter = allReviews.filter(
           (excellent) => excellent.review.email === email
         );
