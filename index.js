@@ -11,6 +11,11 @@ const app = express();
 const port = process.env.PORT || 5000;
 require("dotenv").config();
 
+// stripe key hriday
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+// console.log(stripe);
+
+
 //Middlware
 app.use(express.json());
 app.use(cors());
@@ -45,6 +50,7 @@ async function run() {
     const reviewCollection = client.db("Engine-Experts").collection("reviews");
     const ordersCollection = client.db("Engine-Experts").collection("orders");
     const paymentsCollection = client.db("Engine-Experts").collection('payments');
+    const bookingsCollection = client.db("Engine-Experts").collection('bookings');
 
     // verify jwt middleware
     function verifyJWT(req, res, next) {
@@ -346,38 +352,52 @@ async function run() {
         });
       }
     });
-    // payments-intregrate
-  //   app.post('/create-payment-intent', async (req, res) => {
-  //     const booking = req.body;
-  //     const price = booking.price;
-  //     const amount = price * 100;
 
-  //     const paymentIntent = await stripe.paymentIntents.create({
-  //         currency: 'usd',
-  //         amount: amount,
-  //         "payment_method_types": [
-  //             "card"
-  //         ]
-  //     });
-  //     res.send({
-  //         clientSecret: paymentIntent.client_secret,
-  //     });
-  // });
 
-  // app.post('/payments', async (req, res) => {
-  //     const payment = req.body;
-  //     const result = await paymentsCollection.insertOne(payment);
-  //     const id = payment.bookingId
-  //     const filter = { _id: ObjectId(id) }
-  //     const updatedDoc = {
-  //         $set: {
-  //             paid: true,
-  //             transactionId: payment.transactionId
-  //         }
-  //     }
-  //     const updatedResult = await bookingsCollection.updateOne(filter, updatedDoc)
-  //     res.send(result);
-  // })
+
+
+    // payments-intregrate hriday===========================
+    // =====================================================
+
+    app.post('/create-payment-intent', async (req, res) => {
+      // const booking = req.body;
+      // const price = booking.price;
+      // const amount = price * 100;
+
+      const paymentIntent = await stripe.paymentIntents.create({
+          currency: 'usd',
+          amount: 10000,
+          // email:'hridayhalder91@gmail.com',
+          "payment_method_types": [
+              "card"
+          ]
+      });
+      res.send({
+          clientSecret: paymentIntent.client_secret,
+      });
+  });
+
+  app.post('/payments', async (req, res) => {
+      const payment = req.body;
+      const result = await paymentsCollection.insertOne(payment);
+      const id = payment.bookingId
+      const filter = { _id: ObjectId(id) }
+      const updatedDoc = {
+          $set: {
+              paid: true,
+              transactionId: payment.transactionId
+          }
+      }
+      const updatedResult = await bookingsCollection.updateOne(filter, updatedDoc)
+      res.send(result);
+  })
+
+// ==========================================>payments integrate by hriday
+
+
+
+
+
 
     app.get("/reviews", async (req, res) => {
       try {
