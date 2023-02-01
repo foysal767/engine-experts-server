@@ -43,8 +43,9 @@ async function run() {
     const userCollection = client.db("Engine-Experts").collection("users");
     const adminCollection = client.db("Engine-Experts").collection("admins");
     const reviewCollection = client.db("Engine-Experts").collection("reviews");
-    const ordersCollection = client.db("Engine-Experts").collection("orders");
+    const bookingCollection = client.db("Engine-Experts").collection("bookings");
     const paymentsCollection = client.db("Engine-Experts").collection('payments');
+    const locationCollection = client.db("Engine-Experts").collection('locations');
 
     // verify jwt middleware
     function verifyJWT(req, res, next) {
@@ -96,6 +97,44 @@ async function run() {
         });
       }
     });
+    
+    app.get('/admin', async (req, res) => {
+      try {
+        const email = req.query.email;
+        const result = await adminCollection.findOne({ email: email });
+        console.log(result)
+        if (result) {
+          res.send({
+            success:true
+          })
+          return;
+        }
+        res.send({
+          success:false
+        })
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message
+        })
+      }
+    })
+
+    app.get('/accType', async (req, res) => {
+      try {
+        const email = req.query.email;
+        const result = await userCollection.findOne({ email: email });
+        res.send({
+          success: true,
+          data: result.accType
+        })
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message
+        })
+      }
+    })
 
     app.post("/users", async (req, res) => {
       try {
@@ -115,7 +154,9 @@ async function run() {
 
     app.get("/users", async (req, res) => {
       try {
-        const result = await userCollection.find({}).toArray();
+        const type = req.query.type;
+        const result = await userCollection.find({ accType: type }).toArray();
+        console.log(result)
         res.send({
           success: true,
           data: result,
@@ -406,6 +447,75 @@ async function run() {
           });
       }
     });
+
+
+    app.post('/bookings', async (req, res) => {
+      try {
+        const data = req.body;
+        const locations = {
+          role: 'user',
+          email: data.userEmail,
+          image: data.userImage,
+          location: data.location
+        };
+        const serchLocation = await locationCollection.findOne({ email: data.userEmail });
+        if (!serchLocation) {
+          await locationCollection.insertOne(locations)
+        }
+        const findData = await bookingCollection.find({ userEmail: data.userEmail }).toArray();
+        const duplicateCheck = findData.filter(service => service.serviceName === data.serviceName && service.date === data.date);
+        if (!duplicateCheck.length <= 0) {
+          res.send({
+            success: false,
+            message: 'Already added this service in this date'
+          })
+          return;
+        }
+        const result = await bookingCollection.insertOne(data);
+        
+        res.send({
+          success: true,
+          data: result,
+          message: "successfully Booked service"
+        })
+      } catch (error) {
+        res.send({
+          success: false,
+          message:error.message
+        })
+      }
+    })
+
+
+    app.get('/bookings', async (req, res) => {
+      try {
+        const result = await bookingCollection.find({}).toArray();
+        res.send({
+          success: true,
+          data: result
+        })
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message
+        })
+      }
+    });
+
+    app.get('/locations', async (req, res) => {
+      try {
+        const result = await locationCollection.find({}).toArray();
+        res.send({
+          success: true,
+          data:result
+        })
+      } catch (error) {
+        res.send({
+          success: false,
+          message:error.message
+        })
+      }
+    })
   } catch (error) {
     console.log(error.name, error.message);
   }
