@@ -173,7 +173,13 @@ async function run() {
     app.get("/accType", async (req, res) => {
       try {
         const email = req.query.email
-        const result = await userCollection.findOne({ email: email })
+        const result = await adminCollection.findOne({ email: email })
+        if (result) {
+          res.send({
+            success: true,
+          })
+          return
+        }
         res.send({
           success: true,
           data: result.accType,
@@ -240,6 +246,22 @@ async function run() {
         res.send({
           success: true,
           data: result,
+        })
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        })
+      }
+    })
+
+    app.delete("/services/:id", async (req, res) => {
+      try {
+        const id = req.params.id
+        const result = await serviceCollection.deleteOne({ _id: ObjectId(id) })
+        res.send({
+          success: true,
+          message: "Deleted Successfully",
         })
       } catch (error) {
         res.send({
@@ -501,36 +523,37 @@ async function run() {
             message: error.message,
           })
       }
+    })
 
-      app.get("/userReviews", async (req, res) => {
-        try {
-          const email = req.query.email
-          const result = await serviceCollection
-            .find({})
-            .project({ reviews: 1, _id: 0, name: 1, image: 1 })
-            .toArray()
-          const allReviews = []
-          result.forEach(data => {
-            const { name, image, reviews } = data
-            reviews?.map(review => {
-              const singleData = { name, image, review }
-              allReviews.push(singleData)
-            })
+    app.get("/userReviews/:id", async (req, res) => {
+      try {
+        const email = req.params.id
+        console.log(email)
+        const result = await serviceCollection
+          .find({})
+          .project({ reviews: 1, _id: 0, name: 1, image: 1 })
+          .toArray()
+        const allReviews = []
+        result.forEach(data => {
+          const { name, image, reviews } = data
+          reviews?.map(review => {
+            const singleData = { name, image, review }
+            allReviews.push(singleData)
           })
-          const filter = allReviews.filter(
-            excellent => excellent.review.email === email
-          )
-          res.send({
-            success: true,
-            data: filter,
-          })
-        } catch (error) {
-          res.send({
-            success: false,
-            message: error.message,
-          })
-        }
-      })
+        })
+        const filter = allReviews.filter(
+          excellent => excellent.review.email === email
+        )
+        res.send({
+          success: true,
+          data: filter,
+        })
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        })
+      }
     })
 
     app.post("/bookings", async (req, res) => {
@@ -565,8 +588,6 @@ async function run() {
         }
         const result = await bookingCollection.insertOne(data)
 
-        //send email about services confirmation by Nazrul Islam
-        sendBookingEmail(data)
         res.send({
           success: true,
           data: result,
