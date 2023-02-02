@@ -15,7 +15,6 @@ require("dotenv").config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 // console.log(stripe);
 
-
 //Middlware
 app.use(express.json());
 app.use(cors());
@@ -48,9 +47,15 @@ async function run() {
     const userCollection = client.db("Engine-Experts").collection("users");
     const adminCollection = client.db("Engine-Experts").collection("admins");
     const reviewCollection = client.db("Engine-Experts").collection("reviews");
-    const bookingCollection = client.db("Engine-Experts").collection("bookings");
-    const paymentsCollection = client.db("Engine-Experts").collection('payments');
-    const locationCollection = client.db("Engine-Experts").collection('locations');
+    const bookingCollection = client
+      .db("Engine-Experts")
+      .collection("bookings");
+    const paymentsCollection = client
+      .db("Engine-Experts")
+      .collection("payments");
+    const locationCollection = client
+      .db("Engine-Experts")
+      .collection("locations");
 
     // verify jwt middleware
     function verifyJWT(req, res, next) {
@@ -102,43 +107,43 @@ async function run() {
         });
       }
     });
-    
-    app.get('/admin', async (req, res) => {
+
+    app.get("/admin", async (req, res) => {
       try {
         const email = req.query.email;
         const result = await adminCollection.findOne({ email: email });
         if (result) {
           res.send({
-            success:true
-          })
+            success: true,
+          });
           return;
         }
         res.send({
-          success:false
-        })
+          success: false,
+        });
       } catch (error) {
         res.send({
           success: false,
-          message: error.message
-        })
+          message: error.message,
+        });
       }
-    })
+    });
 
-    app.get('/accType', async (req, res) => {
+    app.get("/accType", async (req, res) => {
       try {
         const email = req.query.email;
         const result = await userCollection.findOne({ email: email });
         res.send({
           success: true,
-          data: result.accType
-        })
+          data: result.accType,
+        });
       } catch (error) {
         res.send({
           success: false,
-          message: error.message
-        })
+          message: error.message,
+        });
       }
-    })
+    });
 
     app.post("/users", async (req, res) => {
       try {
@@ -194,6 +199,22 @@ async function run() {
         res.send({
           success: true,
           data: result,
+        });
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        });
+      }
+    });
+
+    app.delete("/services/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const result = await serviceCollection.deleteOne({ _id: ObjectId(id) });
+        res.send({
+          success: true,
+          message: "Deleted Successfully",
         });
       } catch (error) {
         res.send({
@@ -390,51 +411,44 @@ async function run() {
       }
     });
 
-
-
-
     // payments-intregrate hriday===========================
     // =====================================================
 
-    app.post('/create-payment-intent', async (req, res) => {
+    app.post("/create-payment-intent", async (req, res) => {
       // const booking = req.body;
       // const price = booking.price;
       // const amount = price * 100;
 
       const paymentIntent = await stripe.paymentIntents.create({
-          currency: 'usd',
-          amount: 10000,
-          // email:'hridayhalder91@gmail.com',
-          "payment_method_types": [
-              "card"
-          ]
+        currency: "usd",
+        amount: 10000,
+        // email:'hridayhalder91@gmail.com',
+        payment_method_types: ["card"],
       });
       res.send({
-          clientSecret: paymentIntent.client_secret,
+        clientSecret: paymentIntent.client_secret,
       });
-  });
+    });
 
-  app.post('/payments', async (req, res) => {
+    app.post("/payments", async (req, res) => {
       const payment = req.body;
       const result = await paymentsCollection.insertOne(payment);
-      const id = payment.bookingId
-      const filter = { _id: ObjectId(id) }
+      const id = payment.bookingId;
+      const filter = { _id: ObjectId(id) };
       const updatedDoc = {
-          $set: {
-              paid: true,
-              transactionId: payment.transactionId
-          }
-      }
-      const updatedResult = await bookingsCollection.updateOne(filter, updatedDoc)
+        $set: {
+          paid: true,
+          transactionId: payment.transactionId,
+        },
+      };
+      const updatedResult = await bookingsCollection.updateOne(
+        filter,
+        updatedDoc
+      );
       res.send(result);
-  })
+    });
 
-// ==========================================>payments integrate by hriday
-
-
-
-
-
+    // ==========================================>payments integrate by hriday
 
     app.get("/reviews", async (req, res) => {
       try {
@@ -462,107 +476,113 @@ async function run() {
             message: error.message,
           });
       }
+    });
 
-      app.get('/userReviews', async(req, res) => {
-        try {
-          const email = req.query.email;
-          const result = await serviceCollection
+    app.get("/userReviews/:id", async (req, res) => {
+      try {
+        const email = req.params.id;
+        console.log(email);
+        const result = await serviceCollection
           .find({})
           .project({ reviews: 1, _id: 0, name: 1, image: 1 })
           .toArray();
         const allReviews = [];
         result.forEach((data) => {
-          const {name, image, reviews} = data;
+          const { name, image, reviews } = data;
           reviews?.map((review) => {
-            const singleData = {name, image, review}
+            const singleData = { name, image, review };
             allReviews.push(singleData);
           });
         });
         const filter = allReviews.filter(
           (excellent) => excellent.review.email === email
         );
-          res.send({
-            success: true,
-            data: filter
-          })
-        } catch (error) {
-          res.send({
-            success: false,
-            message: error.message
-          })
-        }
-      })
-
-    });
-
-
-    app.post('/bookings', async (req, res) => {
-      try {
-        const data = req.body;
-        const locations = {
-          role: 'user',
-          email: data.userEmail,
-          image: data.userImage,
-          location: data.location
-        };
-        const serchLocation = await locationCollection.findOne({ email: data.userEmail });
-        if (!serchLocation) {
-          await locationCollection.insertOne(locations)
-        }
-        const findData = await bookingCollection.find({ userEmail: data.userEmail }).toArray();
-        const duplicateCheck = findData.filter(service => service.serviceName === data.serviceName && service.date === data.date);
-        if (!duplicateCheck.length <= 0) {
-          res.send({
-            success: false,
-            message: 'Already added this service in this date'
-          })
-          return;
-        }
-        const result = await bookingCollection.insertOne(data);
-        
         res.send({
           success: true,
-          data: result,
-          message: "successfully Booked service"
-        })
+          data: filter,
+        });
       } catch (error) {
         res.send({
           success: false,
-          message:error.message
-        })
+          message: error.message,
+        });
       }
-    })
+    });
 
+    app.post("/bookings", async (req, res) => {
+      try {
+        const data = req.body;
+        const locations = {
+          role: "user",
+          email: data.userEmail,
+          image: data.userImage,
+          location: data.location,
+        };
+        const serchLocation = await locationCollection.findOne({
+          email: data.userEmail,
+        });
+        if (!serchLocation) {
+          await locationCollection.insertOne(locations);
+        }
+        const findData = await bookingCollection
+          .find({ userEmail: data.userEmail })
+          .toArray();
+        const duplicateCheck = findData.filter(
+          (service) =>
+            service.serviceName === data.serviceName &&
+            service.date === data.date
+        );
+        if (!duplicateCheck.length <= 0) {
+          res.send({
+            success: false,
+            message: "Already added this service in this date",
+          });
+          return;
+        }
+        const result = await bookingCollection.insertOne(data);
 
-    app.get('/bookings', async (req, res) => {
+        res.send({
+          success: true,
+          data: result,
+          message: "successfully Booked service",
+        });
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        });
+      }
+    });
+
+    app.get("/bookings", async (req, res) => {
       try {
         const result = await bookingCollection.find({}).toArray();
         res.send({
           success: true,
-          data: result
-        })
+          data: result,
+        });
       } catch (error) {
         res.send({
           success: false,
-          message: error.message
-        })
+          message: error.message,
+        });
       }
     });
 
-    app.get('/locations', async (req, res) => {
+    app.get("/locations", async (req, res) => {
       try {
         const result = await locationCollection.find({}).toArray();
         res.send({
           success: true,
-          data:result
-        })
+          data: result,
+        });
       } catch (error) {
         res.send({
           success: false,
-          message:error.message
-        })
+          message: error.message,
+        });
       }
-    })
+    });
   } catch (error) {
     console.log(error.name, error.message);
   }
