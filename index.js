@@ -102,7 +102,7 @@ async function run() {
         });
       }
     });
-    
+
     app.get('/admin', async (req, res) => {
       try {
         const email = req.query.email;
@@ -110,12 +110,12 @@ async function run() {
         console.log(result)
         if (result) {
           res.send({
-            success:true
+            success: true
           })
           return;
         }
         res.send({
-          success:false
+          success: false
         })
       } catch (error) {
         res.send({
@@ -405,39 +405,39 @@ async function run() {
       // const amount = price * 100;
 
       const paymentIntent = await stripe.paymentIntents.create({
-          currency: 'usd',
-          amount: 10000,
-          // email:'hridayhalder91@gmail.com',
-          "payment_method_types": [
-              "card"
-          ]
+        currency: 'usd',
+        amount: 10000,
+        // email:'hridayhalder91@gmail.com',
+        "payment_method_types": [
+          "card"
+        ]
       });
       res.send({
-          clientSecret: paymentIntent.client_secret,
+        clientSecret: paymentIntent.client_secret,
       });
-  });
+    });
 
-  app.post('/payments', async (req, res) => {
+    app.post('/payments', async (req, res) => {
       const payment = req.body;
       const result = await paymentsCollection.insertOne(payment);
       const id = payment.bookingId
       const filter = { _id: ObjectId(id) }
       const updatedDoc = {
-          $set: {
-              paid: true,
-              transactionId: payment.transactionId
-          }
+        $set: {
+          paid: true,
+          transactionId: payment.transactionId
+        }
       }
-      const updatedResult = await bookingsCollection.updateOne(filter, updatedDoc)
+      const updatedResult = await bookingCollection.updateOne(filter, updatedDoc)
       res.send(result);
-  })
+    })
 
-// ==========================================>payments integrate by hriday
-
-
+    // ==========================================>payments integrate by hriday
 
 
 
+
+    // reviews===============
 
     app.get("/reviews", async (req, res) => {
       try {
@@ -468,6 +468,8 @@ async function run() {
     });
 
 
+    // bookings=================
+
     app.post('/bookings', async (req, res) => {
       try {
         const data = req.body;
@@ -491,7 +493,7 @@ async function run() {
           return;
         }
         const result = await bookingCollection.insertOne(data);
-        
+
         res.send({
           success: true,
           data: result,
@@ -500,7 +502,7 @@ async function run() {
       } catch (error) {
         res.send({
           success: false,
-          message:error.message
+          message: error.message
         })
       }
     })
@@ -521,17 +523,21 @@ async function run() {
       }
     });
 
+
+
+    // locations============
+
     app.get('/locations', async (req, res) => {
       try {
         const result = await locationCollection.find({}).toArray();
         res.send({
           success: true,
-          data:result
+          data: result
         })
       } catch (error) {
         res.send({
           success: false,
-          message:error.message
+          message: error.message
         })
       }
     })
