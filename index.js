@@ -47,7 +47,7 @@ function sendBookingEmail(data) {
 
   transporter.sendMail(
     {
-      from: "engineexperties@gmail.com", // verified sender email
+      from: "engineexperts24@gmail.com", // verified sender email
       to: userEmail, // recipient email
       subject: `Your Service  ${serviceName} is Confirmed on ${date}`, // Subject line
       text: "Welcome to Engine Expertise", // plain text body
@@ -587,6 +587,8 @@ async function run() {
           return
         }
         const result = await bookingCollection.insertOne(data)
+        //added confarmation mail by nazrul
+        sendBookingEmail(data)
 
         res.send({
           success: true,
