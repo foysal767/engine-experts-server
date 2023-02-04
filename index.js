@@ -47,7 +47,7 @@ function sendBookingEmail(data) {
 
   transporter.sendMail(
     {
-      from: "engineexperties@gmail.com", // verified sender email
+      from: "engineexperts24@gmail.com", // verified sender email
       to: userEmail, // recipient email
       subject: `Your Service  ${serviceName} is Confirmed on ${date}`, // Subject line
       text: "Welcome to Engine Expertise", // plain text body
@@ -650,7 +650,13 @@ async function run() {
           });
           return;
         }
+<<<<<<< HEAD
+        const result = await bookingCollection.insertOne(data)
+        //added confarmation mail by nazrul
+        sendBookingEmail(data)
+=======
         const result = await bookingCollection.insertOne(data);
+>>>>>>> b9f125d6996b0261974ddb4a0dcc9602e98a972f
 
         res.send({
           success: true,
