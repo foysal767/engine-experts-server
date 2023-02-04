@@ -235,10 +235,6 @@ async function run() {
         });
       }
     });
-    app.get("/allUsers", async (req, res) => {
-      const result = await userCollection.find({}).toArray();
-      res.send(result);
-    });
 
     app.post("/addservice", async (req, res) => {
       try {
@@ -552,7 +548,7 @@ async function run() {
           transactionId: payment.transactionId,
         },
       };
-      const updatedResult = await bookingsCollection.updateOne(
+      const updatedResult = await bookingCollection.updateOne(
         filter,
         updatedDoc
       );
@@ -650,13 +646,10 @@ async function run() {
           });
           return;
         }
-<<<<<<< HEAD
-        const result = await bookingCollection.insertOne(data)
-        //added confarmation mail by nazrul
-        sendBookingEmail(data)
-=======
+
         const result = await bookingCollection.insertOne(data);
->>>>>>> b9f125d6996b0261974ddb4a0dcc9602e98a972f
+        //added confarmation mail by nazrul
+        sendBookingEmail(data);
 
         res.send({
           success: true,
@@ -681,6 +674,22 @@ async function run() {
         res.send({
           success: true,
           data: result,
+        });
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        });
+      }
+    });
+
+    app.delete("/deleteOrder/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const result = await bookingCollection.deleteOne({ _id: ObjectId(id) });
+        res.send({
+          success: true,
+          message: "Deleted Successfully!",
         });
       } catch (error) {
         res.send({
