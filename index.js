@@ -397,9 +397,10 @@ async function run() {
     // =====================================================
 
     app.post('/create-payment-intent', async (req, res) => {
-      // const booking = req.body;
-      // const price = booking.price;
-      // const amount = price * 100;
+      const bookings = req.body;
+      const price = bookings.price;
+      const amount = price * 100;
+      // console.log(amount);
 
       const paymentIntent = await stripe.paymentIntents.create({
         currency: 'usd',
@@ -463,24 +464,24 @@ async function run() {
           });
       }
 
-      app.get('/userReviews', async(req, res) => {
+      app.get('/userReviews', async (req, res) => {
         try {
           const email = req.query.email;
           const result = await serviceCollection
-          .find({})
-          .project({ reviews: 1, _id: 0, name: 1, image: 1 })
-          .toArray();
-        const allReviews = [];
-        result.forEach((data) => {
-          const {name, image, reviews} = data;
-          reviews?.map((review) => {
-            const singleData = {name, image, review}
-            allReviews.push(singleData);
+            .find({})
+            .project({ reviews: 1, _id: 0, name: 1, image: 1 })
+            .toArray();
+          const allReviews = [];
+          result.forEach((data) => {
+            const { name, image, reviews } = data;
+            reviews?.map((review) => {
+              const singleData = { name, image, review }
+              allReviews.push(singleData);
+            });
           });
-        });
-        const filter = allReviews.filter(
-          (excellent) => excellent.review.email === email
-        );
+          const filter = allReviews.filter(
+            (excellent) => excellent.review.email === email
+          );
           res.send({
             success: true,
             data: filter
@@ -550,6 +551,41 @@ async function run() {
         })
       }
     });
+
+    app.get('/booking', async (req, res) => {
+      try {
+        const email = req.query.email;
+        const result = await bookingCollection.find({ userEmail: email }).toArray();
+        res.send({
+          success: true,
+          data: result
+        })
+
+
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message
+        })
+      }
+    })
+
+    app.get('/servicePayment/:id', async (req, res) => {
+      try {
+        const id = req.params.id;
+        const result = await bookingCollection.findOne({_id:ObjectId(id)});
+        res.send({
+          success: true,
+          data:result
+        })
+
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message
+        })
+      }
+    })
 
 
 
