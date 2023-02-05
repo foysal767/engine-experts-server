@@ -9,12 +9,13 @@ const {
 const jwt = require("jsonwebtoken");
 const app = express();
 const port = process.env.PORT || 5000;
+const nodemailer = require("nodemailer");
+const mg = require("nodemailer-mailgun-transport");
 require("dotenv").config();
 
 // stripe key hriday
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 // console.log(stripe);
-
 
 //Middlware
 app.use(express.json());
@@ -29,6 +30,47 @@ const client = new MongoClient(uri, {
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
 });
+
+// nazrul start code-----------------------------
+function sendBookingEmail(data) {
+  console.log(data);
+  const { userEmail, location, serviceName, price, payment, date } = data;
+
+  const auth = {
+    auth: {
+      api_key: process.env.EMAIL_SEND_KEY,
+      domain: process.env.EMAIL_SEND_DOMAIN,
+    },
+  };
+
+  const transporter = nodemailer.createTransport(mg(auth));
+
+  transporter.sendMail(
+    {
+      from: "engineexperts24@gmail.com", // verified sender email
+      to: userEmail, // recipient email
+      subject: `Your Service  ${serviceName} is Confirmed on ${date}`, // Subject line
+      text: "Welcome to Engine Expertise", // plain text body
+      html: `
+      <h3>Your Service price: ${price} (${payment})</h3>
+      <div>
+        <p>Your Order Location is lat: ${location.lat} long: ${location.long} Area</p>
+        <p>Thanks From Engine Experts</p>
+      </div>
+      `,
+    },
+
+    function (error, info) {
+      if (error) {
+        console.log(error);
+      } else {
+        console.log("Email sent: " + info.response);
+      }
+    }
+  );
+}
+
+// nazrul islam end the code
 
 // client.connect(err => {
 //   const collection = client.db("test").collection("devices");
@@ -48,9 +90,15 @@ async function run() {
     const userCollection = client.db("Engine-Experts").collection("users");
     const adminCollection = client.db("Engine-Experts").collection("admins");
     const reviewCollection = client.db("Engine-Experts").collection("reviews");
-    const bookingCollection = client.db("Engine-Experts").collection("bookings");
-    const paymentsCollection = client.db("Engine-Experts").collection('payments');
-    const locationCollection = client.db("Engine-Experts").collection('locations');
+    const bookingCollection = client
+      .db("Engine-Experts")
+      .collection("bookings");
+    const paymentsCollection = client
+      .db("Engine-Experts")
+      .collection("payments");
+    const locationCollection = client
+      .db("Engine-Experts")
+      .collection("locations");
 
     // verify jwt middleware
     function verifyJWT(req, res, next) {
@@ -103,42 +151,42 @@ async function run() {
       }
     });
 
-    app.get('/admin', async (req, res) => {
+    app.get("/admin", async (req, res) => {
       try {
         const email = req.query.email;
         const result = await adminCollection.findOne({ email: email });
         if (result) {
           res.send({
-            success: true
-          })
+            success: true,
+          });
           return;
         }
         res.send({
-          success: false
-        })
+          success: false,
+        });
       } catch (error) {
         res.send({
           success: false,
-          message: error.message
-        })
+          message: error.message,
+        });
       }
-    })
+    });
 
-    app.get('/accType', async (req, res) => {
+    app.get("/accType", async (req, res) => {
       try {
         const email = req.query.email;
         const result = await userCollection.findOne({ email: email });
         res.send({
           success: true,
-          data: result.accType
-        })
+          data: result.accType,
+        });
       } catch (error) {
         res.send({
           success: false,
-          message: error.message
-        })
+          message: error.message,
+        });
       }
-    })
+    });
 
     app.post("/users", async (req, res) => {
       try {
@@ -172,6 +220,22 @@ async function run() {
       }
     });
 
+    app.delete("/user/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const result = await userCollection.deleteOne({ _id: ObjectId(id) });
+        res.send({
+          success: true,
+          message: "Successfully Deleted",
+        });
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        });
+      }
+    });
+
     app.post("/addservice", async (req, res) => {
       try {
         const data = req.body;
@@ -191,9 +255,57 @@ async function run() {
     app.get("/services", async (req, res) => {
       try {
         const result = await serviceCollection.find({}).toArray();
+        console.log(result);
         res.send({
           success: true,
           data: result,
+        });
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        });
+      }
+    });
+
+    app.patch("/editService/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const editService = req.body;
+        const filter = await serviceCollection.findOne({ _id: ObjectId(id) });
+        const options = { upsert: true };
+        const updateDoc = {
+          $set: {
+            name: editService?.name,
+            price: editService?.price,
+            details: editService?.details,
+            image: editService?.image,
+          },
+        };
+        const result = await serviceCollection.updateOne(
+          filter,
+          updateDoc,
+          options
+        );
+        res.send({
+          success: true,
+          message: "Updated Successfully",
+        });
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        });
+      }
+    });
+
+    app.delete("/services/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const result = await serviceCollection.deleteOne({ _id: ObjectId(id) });
+        res.send({
+          success: true,
+          message: "Deleted Successfully",
         });
       } catch (error) {
         res.send({
@@ -207,6 +319,22 @@ async function run() {
       try {
         const name = req.query.id;
         const result = await serviceCollection.findOne({ name: name });
+        res.send({
+          success: true,
+          data: result,
+        });
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        });
+      }
+    });
+
+    app.get("/singleService/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const result = await serviceCollection.findOne({ _id: ObjectId(id) });
         res.send({
           success: true,
           data: result,
@@ -390,52 +518,44 @@ async function run() {
       }
     });
 
-
-
-
     // payments-intregrate hriday===========================
     // =====================================================
 
-    app.post('/create-payment-intent', async (req, res) => {
-      const bookings = req.body;
-      const price = bookings.price;
-      const amount = price * 100;
-      // console.log(amount);
+    app.post("/create-payment-intent", async (req, res) => {
+      // const booking = req.body;
+      // const price = booking.price;
+      // const amount = price * 100;
 
       const paymentIntent = await stripe.paymentIntents.create({
-        currency: 'usd',
+        currency: "usd",
         amount: 10000,
         // email:'hridayhalder91@gmail.com',
-        "payment_method_types": [
-          "card"
-        ]
+        payment_method_types: ["card"],
       });
       res.send({
         clientSecret: paymentIntent.client_secret,
       });
     });
 
-    app.post('/payments', async (req, res) => {
+    app.post("/payments", async (req, res) => {
       const payment = req.body;
       const result = await paymentsCollection.insertOne(payment);
-      const id = payment.bookingId
-      const filter = { _id: ObjectId(id) }
+      const id = payment.bookingId;
+      const filter = { _id: ObjectId(id) };
       const updatedDoc = {
         $set: {
           paid: true,
-          transactionId: payment.transactionId
-        }
-      }
-      const updatedResult = await bookingCollection.updateOne(filter, updatedDoc)
+          transactionId: payment.transactionId,
+        },
+      };
+      const updatedResult = await bookingCollection.updateOne(
+        filter,
+        updatedDoc
+      );
       res.send(result);
-    })
+    });
 
     // ==========================================>payments integrate by hriday
-
-
-
-
-    // reviews===============
 
     app.get("/reviews", async (req, res) => {
       try {
@@ -463,148 +583,136 @@ async function run() {
             message: error.message,
           });
       }
-
-      app.get('/userReviews', async (req, res) => {
-        try {
-          const email = req.query.email;
-          const result = await serviceCollection
-            .find({})
-            .project({ reviews: 1, _id: 0, name: 1, image: 1 })
-            .toArray();
-          const allReviews = [];
-          result.forEach((data) => {
-            const { name, image, reviews } = data;
-            reviews?.map((review) => {
-              const singleData = { name, image, review }
-              allReviews.push(singleData);
-            });
-          });
-          const filter = allReviews.filter(
-            (excellent) => excellent.review.email === email
-          );
-          res.send({
-            success: true,
-            data: filter
-          })
-        } catch (error) {
-          res.send({
-            success: false,
-            message: error.message
-          })
-        }
-      })
-
     });
 
+    app.get("/userReviews/:id", async (req, res) => {
+      try {
+        const email = req.params.id;
+        console.log(email);
+        const result = await serviceCollection
+          .find({})
+          .project({ reviews: 1, _id: 0, name: 1, image: 1 })
+          .toArray();
+        const allReviews = [];
+        result.forEach((data) => {
+          const { name, image, reviews } = data;
+          reviews?.map((review) => {
+            const singleData = { name, image, review };
+            allReviews.push(singleData);
+          });
+        });
+        const filter = allReviews.filter(
+          (excellent) => excellent.review.email === email
+        );
+        res.send({
+          success: true,
+          data: filter,
+        });
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        });
+      }
+    });
 
-    // bookings=================
-
-    app.post('/bookings', async (req, res) => {
+    app.post("/bookings", async (req, res) => {
       try {
         const data = req.body;
         const locations = {
-          role: 'user',
+          role: "user",
           email: data.userEmail,
           image: data.userImage,
-          location: data.location
+          location: data.location,
         };
-        const serchLocation = await locationCollection.findOne({ email: data.userEmail });
+        const serchLocation = await locationCollection.findOne({
+          email: data.userEmail,
+        });
         if (!serchLocation) {
-          await locationCollection.insertOne(locations)
+          await locationCollection.insertOne(locations);
         }
-        const findData = await bookingCollection.find({ userEmail: data.userEmail }).toArray();
-        const duplicateCheck = findData.filter(service => service.serviceName === data.serviceName && service.date === data.date);
+        const findData = await bookingCollection
+          .find({ userEmail: data.userEmail })
+          .toArray();
+        const duplicateCheck = findData.filter(
+          (service) =>
+            service.serviceName === data.serviceName &&
+            service.date === data.date
+        );
         if (!duplicateCheck.length <= 0) {
           res.send({
             success: false,
-            message: 'Already added this service in this date'
-          })
+            message: "Already added this service in this date",
+          });
           return;
         }
+
         const result = await bookingCollection.insertOne(data);
+        //added confarmation mail by nazrul
+        sendBookingEmail(data);
 
         res.send({
           success: true,
           data: result,
-          message: "successfully Booked service"
-        })
+          message: "successfully Booked service",
+        });
       } catch (error) {
         res.send({
           success: false,
-          message: error.message
-        })
-      }
-    })
-
-
-    app.get('/bookings', async (req, res) => {
-      try {
-        const result = await bookingCollection.find({}).toArray();
-        res.send({
-          success: true,
-          data: result
-        })
-      } catch (error) {
-        res.send({
-          success: false,
-          message: error.message
-        })
+          message: error.message,
+        });
       }
     });
 
-    app.get('/booking', async (req, res) => {
+    app.get("/bookings", async (req, res) => {
       try {
         const email = req.query.email;
-        const result = await bookingCollection.find({ userEmail: email }).toArray();
+        // console.log(id);
+        const result = await bookingCollection
+          .find({ userEmail: email })
+          .toArray();
         res.send({
           success: true,
-          data: result
-        })
-
-
+          data: result,
+        });
       } catch (error) {
         res.send({
           success: false,
-          message: error.message
-        })
+          message: error.message,
+        });
       }
-    })
+    });
 
-    app.get('/servicePayment/:id', async (req, res) => {
+    app.delete("/deleteOrder/:id", async (req, res) => {
       try {
         const id = req.params.id;
-        const result = await bookingCollection.findOne({_id:ObjectId(id)});
+        const result = await bookingCollection.deleteOne({ _id: ObjectId(id) });
         res.send({
           success: true,
-          data:result
-        })
-
+          message: "Deleted Successfully!",
+        });
       } catch (error) {
         res.send({
           success: false,
-          message: error.message
-        })
+          message: error.message,
+        });
       }
-    })
+    });
 
-
-
-    // locations============
-
-    app.get('/locations', async (req, res) => {
+    app.get("/locations", async (req, res) => {
       try {
         const result = await locationCollection.find({}).toArray();
         res.send({
           success: true,
-          data: result
-        })
+          data: result,
+        });
       } catch (error) {
         res.send({
           success: false,
-          message: error.message
-        })
+          message: error.message,
+        });
       }
-    })
+    });
   } catch (error) {
     console.log(error.name, error.message);
   }
