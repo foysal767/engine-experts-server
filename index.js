@@ -10,6 +10,7 @@ const jwt = require("jsonwebtoken")
 const app = express()
 const port = process.env.PORT || 5000
 const sendBookingEmail = require("./middleware/sendEmail")
+const confirmMail = require("./middleware/confirmmail")
 require("dotenv").config()
 
 // stripe key hriday
@@ -489,7 +490,7 @@ async function run() {
       )
     })
 
-    app.post("/payments", async (req, res) => {
+    app.post("/payments", confirmMail, async (req, res) => {
       const payment = req.body
       console.log(payment)
       const result = await paymentsCollection.insertOne(payment)
@@ -497,7 +498,7 @@ async function run() {
       const filter = { _id: ObjectId(id) }
       const updatedDoc = {
         $set: {
-          Payment: "paid",
+          payment: "paid",
           transactionId: payment.transactionId,
         },
       }
@@ -505,6 +506,7 @@ async function run() {
         filter,
         updatedDoc
       )
+
       res.send(result)
     })
 
@@ -619,7 +621,7 @@ async function run() {
 
         const result = await bookingCollection.insertOne(data)
         //added confarmation mail by nazrul
-        sendBookingEmail(data)
+        // sendBookingEmail(data)
 
         res.send({
           success: true,
