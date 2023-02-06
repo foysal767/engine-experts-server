@@ -522,29 +522,32 @@ async function run() {
     // =====================================================
 
     app.post("/create-payment-intent", async (req, res) => {
-      // const booking = req.body;
-      // const price = booking.price;
-      // const amount = price * 100;
+      const booking = req.body;
+      const price = booking.price;
+      console.log('payment intended', booking);
+      const amount = price * 100;
+      // console.log(amount);
 
       const paymentIntent = await stripe.paymentIntents.create({
         currency: "usd",
-        amount: 10000,
-        // email:'hridayhalder91@gmail.com',
+        amount: amount,
         payment_method_types: ["card"],
       });
-      res.send({
-        clientSecret: paymentIntent.client_secret,
-      });
+      res.send(
+        // clientSecret: paymentIntent.client_secret,
+        paymentIntent
+      );
     });
 
     app.post("/payments", async (req, res) => {
       const payment = req.body;
+      console.log(payment);
       const result = await paymentsCollection.insertOne(payment);
-      const id = payment.bookingId;
+      const id = payment.id;
       const filter = { _id: ObjectId(id) };
       const updatedDoc = {
         $set: {
-          paid: true,
+          Payment: 'paid',
           transactionId: payment.transactionId,
         },
       };
@@ -554,6 +557,25 @@ async function run() {
       );
       res.send(result);
     });
+
+
+    app.get('/servicePayment/:id', async(req, res) => {
+      try {
+        const id=req.params.id;
+        // console.log(id);
+        const result = await bookingCollection.findOne({_id:ObjectId(id)});
+        res.send({
+          success:true,
+          data: result
+        })
+        
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message
+        })
+      }
+    })
 
     // ==========================================>payments integrate by hriday
 
