@@ -185,10 +185,6 @@ async function run() {
         })
       }
     })
-    app.get("/allUsers", async (req, res) => {
-      const result = await userCollection.find({}).toArray()
-      res.send(result)
-    })
 
     app.post("/addservice", async (req, res) => {
       try {
@@ -476,37 +472,57 @@ async function run() {
     // =====================================================
 
     app.post("/create-payment-intent", async (req, res) => {
-      // const booking = req.body;
-      // const price = booking.price;
-      // const amount = price * 100;
+      const booking = req.body
+      const price = booking.price
+      console.log("payment intended", booking)
+      const amount = price * 100
+      // console.log(amount);
 
       const paymentIntent = await stripe.paymentIntents.create({
         currency: "usd",
-        amount: 10000,
-        // email:'hridayhalder91@gmail.com',
+        amount: amount,
         payment_method_types: ["card"],
       })
-      res.send({
-        clientSecret: paymentIntent.client_secret,
-      })
+      res.send(
+        // clientSecret: paymentIntent.client_secret,
+        paymentIntent
+      )
     })
 
     app.post("/payments", async (req, res) => {
       const payment = req.body
+      console.log(payment)
       const result = await paymentsCollection.insertOne(payment)
-      const id = payment.bookingId
+      const id = payment.id
       const filter = { _id: ObjectId(id) }
       const updatedDoc = {
         $set: {
-          paid: true,
+          Payment: "paid",
           transactionId: payment.transactionId,
         },
       }
-      const updatedResult = await bookingsCollection.updateOne(
+      const updatedResult = await bookingCollection.updateOne(
         filter,
         updatedDoc
       )
       res.send(result)
+    })
+
+    app.get("/servicePayment/:id", async (req, res) => {
+      try {
+        const id = req.params.id
+        // console.log(id);
+        const result = await bookingCollection.findOne({ _id: ObjectId(id) })
+        res.send({
+          success: true,
+          data: result,
+        })
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        })
+      }
     })
 
     // ==========================================>payments integrate by hriday
@@ -600,7 +616,11 @@ async function run() {
           })
           return
         }
+
         const result = await bookingCollection.insertOne(data)
+        //added confarmation mail by nazrul
+        sendBookingEmail(data)
+
         res.send({
           success: true,
           data: result,
@@ -624,6 +644,22 @@ async function run() {
         res.send({
           success: true,
           data: result,
+        })
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        })
+      }
+    })
+
+    app.delete("/deleteOrder/:id", async (req, res) => {
+      try {
+        const id = req.params.id
+        const result = await bookingCollection.deleteOne({ _id: ObjectId(id) })
+        res.send({
+          success: true,
+          message: "Deleted Successfully!",
         })
       } catch (error) {
         res.send({
