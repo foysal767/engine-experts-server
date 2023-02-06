@@ -10,7 +10,7 @@ const jwt = require("jsonwebtoken")
 const app = express()
 const port = process.env.PORT || 5000
 const sendBookingEmail = require("./middleware/sendEmail")
-const confirmMail = require("./middleware/confirmmail")
+const confirmmail = require("./middleware/confirmMail")
 require("dotenv").config()
 
 // stripe key hriday
@@ -206,7 +206,6 @@ async function run() {
     app.get("/services", async (req, res) => {
       try {
         const result = await serviceCollection.find({}).toArray()
-        console.log(result)
         res.send({
           success: true,
           data: result,
@@ -473,41 +472,54 @@ async function run() {
     // =====================================================
 
     app.post("/create-payment-intent", async (req, res) => {
-      const booking = req.body
-      const price = booking.price
-      console.log("payment intended", booking)
-      const amount = price * 100
-      // console.log(amount);
+      try {
+          const booking = req.body
+          const price = booking.price
+          console.log("payment intended", booking)
+          const amount = price * 100
+          console.log('total amount',amount);
 
-      const paymentIntent = await stripe.paymentIntents.create({
-        currency: "usd",
-        amount: amount,
-        payment_method_types: ["card"],
-      })
-      res.send(
-        // clientSecret: paymentIntent.client_secret,
-        paymentIntent
-      )
+          const paymentIntent = await stripe.paymentIntents.create({
+            currency: "usd",
+            amount: amount,
+            payment_method_types: ["card"],
+          })
+        res.send(
+          // clientSecret: paymentIntent.client_secret,
+          paymentIntent
+        )
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message
+        })
+      }
     })
 
-    app.post("/payments", confirmMail, async (req, res) => {
-      const payment = req.body
-      console.log(payment)
-      const result = await paymentsCollection.insertOne(payment)
-      const id = payment.id
-      const filter = { _id: ObjectId(id) }
-      const updatedDoc = {
-        $set: {
-          payment: "paid",
-          transactionId: payment.transactionId,
-        },
-      }
-      const updatedResult = await bookingCollection.updateOne(
-        filter,
-        updatedDoc
-      )
-
+    app.post("/payments",confirmmail, async (req, res) => {
+      try {
+        const payment = req.body
+        // console.log(payment)
+        const result = await paymentsCollection.insertOne(payment)
+        const id = payment.id
+        const filter = { _id: ObjectId(id) }
+        const updatedDoc = {
+          $set: {
+            payment: "paid",
+            transactionId: payment.transactionId,
+          },
+        }
+        const updatedResult = await bookingCollection.updateOne(
+          filter,
+          updatedDoc
+        )
       res.send(result)
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message
+        })
+      }
     })
 
     app.get("/servicePayment/:id", async (req, res) => {
@@ -560,7 +572,6 @@ async function run() {
     app.get("/userReviews/:id", async (req, res) => {
       try {
         const email = req.params.id
-        console.log(email)
         const result = await serviceCollection
           .find({})
           .project({ reviews: 1, _id: 0, name: 1, image: 1 })
