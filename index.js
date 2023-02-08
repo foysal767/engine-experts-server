@@ -299,10 +299,13 @@ async function run() {
 
     app.patch("/campaign", async (req, res) => {
       try {
+        const existiCam = await campaignCollection.find({}).toArray();
         const data = req.body
         const campaign = {
           campaignName: data.campname,
           services: [],
+          startDate: data.startDate,
+          endDate: data.endDate,
         }
 
         const findCamp = await campaignCollection.findOne({
@@ -376,6 +379,17 @@ async function run() {
           success: true,
           data: result,
         })
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        })
+      }
+    })
+
+    app.patch("/updateDate", async(req, res) => {
+      try {
+        
       } catch (error) {
         res.send({
           success: false,
@@ -662,6 +676,21 @@ async function run() {
         res.send({
           success: false,
           message: error.message,
+        })
+      }
+    })
+
+    app.get("/allBookings", async(req, res) => {
+      try {
+        const result = await bookingCollection.find({}).toArray();
+        res.send({
+          success: true,
+          data: result
+        })
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message
         })
       }
     })
