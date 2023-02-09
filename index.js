@@ -299,46 +299,72 @@ async function run() {
 
     app.patch("/campaign", async (req, res) => {
       try {
-        const existiCam = await campaignCollection.find({}).toArray();
-        const data = req.body
+        const data = req.body;
         const campaign = {
-          campaignName: data.campname,
+          campaignName: data.campName,
           services: [],
           startDate: data.startDate,
-          endDate: data.endDate,
+          endDate: data.endedDate
         }
-
-        const findCamp = await campaignCollection.findOne({
-          campaignName: data.campname,
-        })
-
-        if (findCamp) {
-          const duplicate = findCamp.services.find(
+        const namedCam = await campaignCollection.findOne({ campaignName: data.campName })
+        if (!namedCam) {
+          const existCam = await campaignCollection.find({}).toArray();
+          if (existCam.length > 0) {
+            res.send({
+              success: false,
+              message: `already '${existCam[0]?.campaignName}' campaign running`
+            })
+            return;
+          } else {
+            const insertCamp = await campaignCollection.insertOne(campaign);
+            const findCamp = await campaignCollection.findOne({ campaignName: data.campName })
+            const findService = await serviceCollection.findOne({ name: data.service });
+            const updatedService = {
+              ...findService,
+              discountPrice: data.discountprice,
+            }
+            findCamp.services.push(updatedService);
+            const filter = { campaignName: data.campName }
+            const options = { upsert: true }
+            const updateDoc = {
+              $set: {
+                services: findCamp.services,
+              },
+            }
+            const result = await campaignCollection.updateOne(
+              filter,
+              updateDoc,
+              options
+            )
+            res.send({
+              success: true,
+              message: 'Successfully added the product'
+            })
+          }
+        } else {
+          const duplicate = namedCam.services.find(
             service => service.name === data.service
           )
           if (duplicate) {
             res.send({
               success: false,
-              message: "This product is already added",
+              message: "Already added this product"
             })
-            return
+            return;
           }
-          const filterService = await serviceCollection.findOne({
-            name: data.service,
-          })
+          const findService = await serviceCollection.findOne({ name: data.service });
           const updatedService = {
-            ...filterService,
+            ...findService,
             discountPrice: data.discountprice,
           }
-          findCamp.services.push(updatedService)
-          const filter = { campaignName: data.campname }
+          namedCam.services.push(updatedService);
+          const filter = { campaignName: data.campName }
           const options = { upsert: true }
           const updateDoc = {
             $set: {
-              services: findCamp.services,
+              services: namedCam.services,
             },
           }
-
           const result = await campaignCollection.updateOne(
             filter,
             updateDoc,
@@ -346,28 +372,27 @@ async function run() {
           )
           res.send({
             success: true,
-            data: result,
+            message: "Successfully added Product"
           })
-          return
         }
-        const addedCampaign = await campaignCollection.insertOne(campaign)
-        const findnewCamp = await campaignCollection.findOne({
-          campaignName: data.campname,
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
         })
-        const filterService = await serviceCollection.findOne({
-          name: data.service,
-        })
+      }
+    });
 
-        const updatedService = {
-          ...filterService,
-          discountPrice: data.discountprice,
-        }
-        findnewCamp.services.push(updatedService)
-        const filter = { campaignName: data.campname }
+
+    app.patch('/startCamp', async (req, res) => {
+      try {
+        const data = req.body;
+        const findCamp = await campaignCollection.find({}).toArray();
+        const filter = findCamp[0];
         const options = { upsert: true }
         const updateDoc = {
           $set: {
-            services: findnewCamp.services,
+              endDate: data.endDate,
           },
         }
         const result = await campaignCollection.updateOne(
@@ -377,12 +402,13 @@ async function run() {
         )
         res.send({
           success: true,
-          data: result,
+          message: 'suuccessfully Start the Campaign'
         })
+
       } catch (error) {
         res.send({
           success: false,
-          message: error.message,
+          message: error.message
         })
       }
     })
