@@ -11,7 +11,6 @@ const app = express()
 const port = process.env.PORT || 5000
 const sendBookingEmail = require("./middleware/sendEmail")
 const confirmmail = require("./middleware/confirmMail")
-const getEmail = require("./middleware/getEmail")
 require("dotenv").config()
 
 // stripe key hriday
@@ -143,11 +142,20 @@ async function run() {
     app.post("/users", async (req, res) => {
       try {
         const user = req.body
-        const result = await userCollection.insertOne(user)
-        res.send({
-          success: true,
-          data: result,
-        })
+        const { email } = user
+        const find = await userCollection.findOne({ email: email })
+        if (find) {
+          res.send({
+            success: true,
+          })
+          return
+        } else {
+          const result = await userCollection.insertOne(user)
+          res.send({
+            success: true,
+            data: result,
+          })
+        }
       } catch (error) {
         res.send({
           success: false,
@@ -163,6 +171,51 @@ async function run() {
         res.send({
           success: true,
           data: result,
+        })
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        })
+      }
+    })
+
+    // For get verify seller
+    app.get("/singleUser/:id", async (req, res) => {
+      try {
+        const id = req.params.id
+        const result = await userCollection.findOne({ _id: ObjectId(id) })
+        res.send({
+          success: true,
+          data: result,
+        })
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        })
+      }
+    })
+
+    // For verify the seller
+    app.patch("/singleUser/:id", async (req, res) => {
+      try {
+        const id = req.params.id
+        const filter = { _id: ObjectId(id) }
+        const options = { upsert: true }
+        const updatedDoc = {
+          $set: {
+            accType: "verifiedSeller",
+          },
+        }
+        const result = await userCollection.updateOne(
+          filter,
+          updatedDoc,
+          options
+        )
+        res.send({
+          success: true,
+          message: "This seller is verified successfully",
         })
       } catch (error) {
         res.send({
@@ -302,41 +355,78 @@ async function run() {
       try {
         const data = req.body
         const campaign = {
-          campaignName: data.campname,
+          campaignName: data.campName,
           services: [],
+          startDate: data.startDate,
+          endDate: data.endedDate,
         }
-
-        const findCamp = await campaignCollection.findOne({
-          campaignName: data.campname,
+        const namedCam = await campaignCollection.findOne({
+          campaignName: data.campName,
         })
-
-        if (findCamp) {
-          const duplicate = findCamp.services.find(
+        if (!namedCam) {
+          const existCam = await campaignCollection.find({}).toArray()
+          if (existCam.length > 0) {
+            res.send({
+              success: false,
+              message: `already '${existCam[0]?.campaignName}' campaign running`,
+            })
+            return
+          } else {
+            const insertCamp = await campaignCollection.insertOne(campaign)
+            const findCamp = await campaignCollection.findOne({
+              campaignName: data.campName,
+            })
+            const findService = await serviceCollection.findOne({
+              name: data.service,
+            })
+            const updatedService = {
+              ...findService,
+              discountPrice: data.discountprice,
+            }
+            findCamp.services.push(updatedService)
+            const filter = { campaignName: data.campName }
+            const options = { upsert: true }
+            const updateDoc = {
+              $set: {
+                services: findCamp.services,
+              },
+            }
+            const result = await campaignCollection.updateOne(
+              filter,
+              updateDoc,
+              options
+            )
+            res.send({
+              success: true,
+              message: "Successfully added the product",
+            })
+          }
+        } else {
+          const duplicate = namedCam.services.find(
             service => service.name === data.service
           )
           if (duplicate) {
             res.send({
               success: false,
-              message: "This product is already added",
+              message: "Already added this product",
             })
             return
           }
-          const filterService = await serviceCollection.findOne({
+          const findService = await serviceCollection.findOne({
             name: data.service,
           })
           const updatedService = {
-            ...filterService,
+            ...findService,
             discountPrice: data.discountprice,
           }
-          findCamp.services.push(updatedService)
-          const filter = { campaignName: data.campname }
+          namedCam.services.push(updatedService)
+          const filter = { campaignName: data.campName }
           const options = { upsert: true }
           const updateDoc = {
             $set: {
-              services: findCamp.services,
+              services: namedCam.services,
             },
           }
-
           const result = await campaignCollection.updateOne(
             filter,
             updateDoc,
@@ -344,28 +434,27 @@ async function run() {
           )
           res.send({
             success: true,
-            data: result,
+            message: "Successfully added Product",
           })
-          return
         }
-        const addedCampaign = await campaignCollection.insertOne(campaign)
-        const findnewCamp = await campaignCollection.findOne({
-          campaignName: data.campname,
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
         })
-        const filterService = await serviceCollection.findOne({
-          name: data.service,
-        })
+      }
+    })
 
-        const updatedService = {
-          ...filterService,
-          discountPrice: data.discountprice,
-        }
-        findnewCamp.services.push(updatedService)
-        const filter = { campaignName: data.campname }
+    app.patch("/startCamp", async (req, res) => {
+      try {
+        const data = req.body
+        const findCamp = await campaignCollection.find({}).toArray()
+        const filter = findCamp[0]
         const options = { upsert: true }
         const updateDoc = {
           $set: {
-            services: findnewCamp.services,
+            startDate: data.startDate,
+            endDate: data.endDate,
           },
         }
         const result = await campaignCollection.updateOne(
@@ -375,7 +464,7 @@ async function run() {
         )
         res.send({
           success: true,
-          data: result,
+          message: "suuccessfully Start the Campaign",
         })
       } catch (error) {
         res.send({
@@ -384,6 +473,33 @@ async function run() {
         })
       }
     })
+
+    app.delete("/stopCampaign", async (req, res) => {
+      try {
+        const findCamp = await campaignCollection.find({}).toArray()
+        const filter = findCamp[0]
+        const result = await campaignCollection.deleteOne(filter)
+        res.send({
+          success: true,
+          message: "Stop the campaign Successfully!",
+        })
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        })
+      }
+    })
+
+    // app.patch("/updateDate", async (req, res) => {
+    //   try {
+    //   } catch (error) {
+    //     res.send({
+    //       success: false,
+    //       message: error.message,
+    //     });
+    //   }
+    // });
 
     app.get("/campaign", async (req, res) => {
       try {
@@ -667,6 +783,21 @@ async function run() {
       }
     })
 
+    app.get("/allBookings", async (req, res) => {
+      try {
+        const result = await bookingCollection.find({}).toArray()
+        res.send({
+          success: true,
+          data: result,
+        })
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        })
+      }
+    })
+
     app.delete("/deleteOrder/:id", async (req, res) => {
       try {
         const id = req.params.id
@@ -697,12 +828,6 @@ async function run() {
         })
       }
     })
-
-    //======================Contact form Code Start By Nazrul===========================================
-
-    app.post("/contactform", getEmail)
-
-    //=====================Contact Form Code End By Nazrul=============================================
   } catch (error) {
     console.log(error.name, error.message)
   }
