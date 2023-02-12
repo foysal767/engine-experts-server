@@ -11,6 +11,7 @@ const app = express()
 const port = process.env.PORT || 5000
 const sendBookingEmail = require("./middleware/sendEmail")
 const confirmmail = require("./middleware/confirmMail")
+const getEmail = require("./middleware/getEmail")
 require("dotenv").config()
 
 // stripe key hriday
@@ -473,17 +474,17 @@ async function run() {
 
     app.post("/create-payment-intent", async (req, res) => {
       try {
-          const booking = req.body
-          const price = booking.price
-          console.log("payment intended", booking)
-          const amount = price * 100
-          console.log('total amount',amount);
+        const booking = req.body
+        const price = booking.price
+        console.log("payment intended", booking)
+        const amount = price * 100
+        console.log("total amount", amount)
 
-          const paymentIntent = await stripe.paymentIntents.create({
-            currency: "usd",
-            amount: amount,
-            payment_method_types: ["card"],
-          })
+        const paymentIntent = await stripe.paymentIntents.create({
+          currency: "usd",
+          amount: amount,
+          payment_method_types: ["card"],
+        })
         res.send(
           // clientSecret: paymentIntent.client_secret,
           paymentIntent
@@ -491,12 +492,12 @@ async function run() {
       } catch (error) {
         res.send({
           success: false,
-          message: error.message
+          message: error.message,
         })
       }
     })
 
-    app.post("/payments",confirmmail, async (req, res) => {
+    app.post("/payments", confirmmail, async (req, res) => {
       try {
         const payment = req.body
         // console.log(payment)
@@ -513,11 +514,11 @@ async function run() {
           filter,
           updatedDoc
         )
-      res.send(result)
+        res.send(result)
       } catch (error) {
         res.send({
           success: false,
-          message: error.message
+          message: error.message,
         })
       }
     })
@@ -696,6 +697,12 @@ async function run() {
         })
       }
     })
+
+    //======================Contact form Code Start By Nazrul===========================================
+
+    app.post("/contactform", getEmail)
+
+    //=====================Contact Form Code End By Nazrul=============================================
   } catch (error) {
     console.log(error.name, error.message)
   }
