@@ -11,6 +11,7 @@ const app = express()
 const port = process.env.PORT || 5000
 const sendBookingEmail = require("./middleware/sendEmail")
 const confirmmail = require("./middleware/confirmMail")
+const getEmail = require("./middleware/getEmail")
 require("dotenv").config()
 
 // stripe key hriday
@@ -828,6 +829,12 @@ async function run() {
         })
       }
     })
+
+    //======================Contact form Code Start By Nazrul===========================================
+
+    app.post("/contactform", getEmail)
+
+    //=====================Contact Form Code End By Nazrul=============================================
   } catch (error) {
     console.log(error.name, error.message)
   }

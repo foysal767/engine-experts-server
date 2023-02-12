@@ -24,7 +24,7 @@ const getEmail = async (req, res) => {
             <p>${req.body.message}</p>
             `,
   })
-  res.send({ message: "message sent succesfully" })
+  res.send({ message: "Message Sent Succesfully" })
 }
 
 module.exports = getEmail
