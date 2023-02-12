@@ -17,7 +17,10 @@ const getEmail = async (req, res) => {
     to: process.env.SENDER_EMAIL,
     subject: "Thanks For Giving Feedback To Engine Expert Services",
     html: `
-            <h1>Customer Message</h1>
+            <h1>${req.body.name}</h1>
+            <h4>Email: ${req.body.email}</h4>
+            <h4>Phone : ${req.body.phone}</h4>
+            <h4>Customer Message:</h4>
             <p>${req.body.message}</p>
             `,
   })
