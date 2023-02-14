@@ -360,7 +360,7 @@ async function run() {
         const campaign = {
           campaignName: data.campName,
           services: [],
-          startDate: data.startDate,
+          // startDate: data.startDate,
           endDate: data.endedDate,
         };
         const namedCam = await campaignCollection.findOne({
@@ -388,12 +388,19 @@ async function run() {
             };
             findCamp.services.push(updatedService);
             const filter = { campaignName: data.campName };
+            const filter2 = { name: data.service };
             const options = { upsert: true };
             const updateDoc = {
               $set: {
                 services: findCamp.services,
               },
             };
+            const updateDoc2 = {
+              $set: {
+                discountPrice: data.discountprice,
+              },
+            };
+            const result2 = await serviceCollection.updateOne(filter2,updateDoc2,options)
             const result = await campaignCollection.updateOne(
               filter,
               updateDoc,
@@ -424,12 +431,19 @@ async function run() {
           };
           namedCam.services.push(updatedService);
           const filter = { campaignName: data.campName };
+          const filter2 = { name: data.service };
           const options = { upsert: true };
           const updateDoc = {
             $set: {
               services: namedCam.services,
             },
           };
+          const updateDoc2 = {
+              $set: {
+                discountPrice: data.discountprice,
+              },
+            };
+            const result2 = await serviceCollection.updateOne(filter2,updateDoc2,options)
           const result = await campaignCollection.updateOne(
             filter,
             updateDoc,
@@ -481,6 +495,17 @@ async function run() {
       try {
         const findCamp = await campaignCollection.find({}).toArray();
         const filter = findCamp[0];
+        const services = filter.services;
+        services.map(async element => {
+          const result = await serviceCollection.findOne({ name: element.name })
+          const options = { upsert: true }
+          const updatedDoc = {
+            $set: {
+              discountPrice: ""
+            }
+          }
+          const update = await serviceCollection.updateOne(result,updatedDoc,options)
+        });
         const result = await campaignCollection.deleteOne(filter);
         res.send({
           success: true,
@@ -855,6 +880,25 @@ async function run() {
         });
       }
     });
+
+
+    app.get("/getSeller", async (req, res) => {
+      try {
+        const name = req.query.name;
+        // console.log('first', name)
+        const sellers = await userCollection.find({ accType: 'verifiedSeller' }).toArray();
+        const specifyedSeller = sellers.filter(seller => seller.expert === name)
+        res.send({
+          success: true,
+          data: specifyedSeller
+        })
+      } catch (error) {
+        res.send({
+          success: false,
+          message:error.message
+        })
+      }
+    })
 
     app.delete("/deleteOrder/:id", async (req, res) => {
       try {
