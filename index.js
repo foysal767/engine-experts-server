@@ -699,7 +699,7 @@ async function run() {
           // .project({ reviews: 1, _id: 0 })
           .toArray();
         const excellentReview = result.filter(
-          (data) => data.rating === "Excellent"
+          (data) => data.rating === 5
         );
 
         // const allReviews = [];
@@ -884,18 +884,66 @@ async function run() {
 
     app.get("/getSeller", async (req, res) => {
       try {
-        const name = req.query.name;
-        // console.log('first', name)
-        const sellers = await userCollection.find({ accType: 'verifiedSeller' }).toArray();
-        const specifyedSeller = sellers.filter(seller => seller.expert === name)
+        // const name = req.query.name;
+        const sellers = await userCollection.find({ accType: 'verifiedSeller' }).project({_id:0, email:1, expert:1}).toArray();
+        // const specifyedSeller = sellers.filter(seller => seller.expert === name)
         res.send({
           success: true,
-          data: specifyedSeller
+          data: sellers
         })
       } catch (error) {
         res.send({
           success: false,
           message:error.message
+        })
+      }
+    });
+
+
+    app.patch("/getSeller", async (req, res) => {
+      try {
+        const userEmail = req.query.email;
+        const id = req.query.id;
+        if (!userEmail) {
+          res.send({
+            success: false,
+            message: "Select a seller"
+          })
+          return;
+        }
+        const filter = { _id: ObjectId(id) }
+        const options = { upsert: true };
+        const updatedDoc = {
+          $set: {
+            seller: userEmail
+          }
+        };
+        const result = await bookingCollection.updateOne(filter, updatedDoc, options);
+        res.send({
+          success: true,
+          message: "Order Send Successfully"
+        })
+      } catch (error) {
+        res.send({
+          success: false,
+          message:error.message
+        })
+      }
+    })
+
+
+    app.get("/sellerOrder", async (req, res) => {
+      try {
+        const sellerEmail = req.query.email;
+        const result = await bookingCollection.find({ seller: sellerEmail }).toArray();
+        res.send({
+          success: true,
+          data:result
+        })
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message
         })
       }
     })
