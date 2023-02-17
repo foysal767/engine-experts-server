@@ -972,9 +972,55 @@ async function run() {
         const result = await bookingCollection
           .find({ seller: sellerEmail })
           .toArray();
+        const filter = result.filter((order) => order.status !== "completed");
         res.send({
           success: true,
-          data: result,
+          data: filter,
+        });
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        });
+      }
+    });
+    app.get("/completedOrder", async (req, res) => {
+      try {
+        const sellerEmail = req.query.email;
+        const result = await bookingCollection
+          .find({ seller: sellerEmail })
+          .toArray();
+        const filter = result.filter((order) => order.status === "completed");
+        res.send({
+          success: true,
+          data: filter,
+        });
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        });
+      }
+    });
+
+    app.patch("/sellerOrder/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const filter = { _id: ObjectId(id) };
+        const options = { upsert: true };
+        const updatedDoc = {
+          $set: {
+            status: "completed",
+          },
+        };
+        const result = await bookingCollection.updateOne(
+          filter,
+          updatedDoc,
+          options
+        );
+        res.send({
+          success: true,
+          message: "Successfully completed this order!",
         });
       } catch (error) {
         res.send({
