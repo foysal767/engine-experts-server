@@ -400,7 +400,11 @@ async function run() {
                 discountPrice: data.discountprice,
               },
             };
-            const result2 = await serviceCollection.updateOne(filter2,updateDoc2,options)
+            const result2 = await serviceCollection.updateOne(
+              filter2,
+              updateDoc2,
+              options
+            );
             const result = await campaignCollection.updateOne(
               filter,
               updateDoc,
@@ -439,11 +443,15 @@ async function run() {
             },
           };
           const updateDoc2 = {
-              $set: {
-                discountPrice: data.discountprice,
-              },
-            };
-            const result2 = await serviceCollection.updateOne(filter2,updateDoc2,options)
+            $set: {
+              discountPrice: data.discountprice,
+            },
+          };
+          const result2 = await serviceCollection.updateOne(
+            filter2,
+            updateDoc2,
+            options
+          );
           const result = await campaignCollection.updateOne(
             filter,
             updateDoc,
@@ -496,15 +504,21 @@ async function run() {
         const findCamp = await campaignCollection.find({}).toArray();
         const filter = findCamp[0];
         const services = filter.services;
-        services.map(async element => {
-          const result = await serviceCollection.findOne({ name: element.name })
-          const options = { upsert: true }
+        services.map(async (element) => {
+          const result = await serviceCollection.findOne({
+            name: element.name,
+          });
+          const options = { upsert: true };
           const updatedDoc = {
             $set: {
-              discountPrice: ""
-            }
-          }
-          const update = await serviceCollection.updateOne(result,updatedDoc,options)
+              discountPrice: "",
+            },
+          };
+          const update = await serviceCollection.updateOne(
+            result,
+            updatedDoc,
+            options
+          );
         });
         const result = await campaignCollection.deleteOne(filter);
         res.send({
@@ -673,6 +687,24 @@ async function run() {
       }
     });
 
+    app.get("/payments", async (req, res) => {
+      try {
+        const result = await paymentsCollection
+          .find({})
+          .project({ _id: 0, price: 1, date: 1 })
+          .toArray();
+        res.send({
+          success: true,
+          data: result,
+        });
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        });
+      }
+    });
+
     app.get("/servicePayment/:id", async (req, res) => {
       try {
         const id = req.params.id;
@@ -698,9 +730,7 @@ async function run() {
           .find({})
           // .project({ reviews: 1, _id: 0 })
           .toArray();
-        const excellentReview = result.filter(
-          (data) => data.rating === 5
-        );
+        const excellentReview = result.filter((data) => data.rating === 5);
 
         // const allReviews = [];
         // result.forEach((data) => {
@@ -881,24 +911,25 @@ async function run() {
       }
     });
 
-
     app.get("/getSeller", async (req, res) => {
       try {
         // const name = req.query.name;
-        const sellers = await userCollection.find({ accType: 'verifiedSeller' }).project({_id:0, email:1, expert:1}).toArray();
+        const sellers = await userCollection
+          .find({ accType: "verifiedSeller" })
+          .project({ _id: 0, email: 1, expert: 1 })
+          .toArray();
         // const specifyedSeller = sellers.filter(seller => seller.expert === name)
         res.send({
           success: true,
-          data: sellers
-        })
+          data: sellers,
+        });
       } catch (error) {
         res.send({
           success: false,
-          message:error.message
-        })
+          message: error.message,
+        });
       }
     });
-
 
     app.patch("/getSeller", async (req, res) => {
       try {
@@ -907,46 +938,51 @@ async function run() {
         if (!userEmail) {
           res.send({
             success: false,
-            message: "Select a seller"
-          })
+            message: "Select a seller",
+          });
           return;
         }
-        const filter = { _id: ObjectId(id) }
+        const filter = { _id: ObjectId(id) };
         const options = { upsert: true };
         const updatedDoc = {
           $set: {
-            seller: userEmail
-          }
+            seller: userEmail,
+          },
         };
-        const result = await bookingCollection.updateOne(filter, updatedDoc, options);
+        const result = await bookingCollection.updateOne(
+          filter,
+          updatedDoc,
+          options
+        );
         res.send({
           success: true,
-          message: "Order Send Successfully"
-        })
+          message: "Order Send Successfully",
+        });
       } catch (error) {
         res.send({
           success: false,
-          message:error.message
-        })
+          message: error.message,
+        });
       }
-    })
-
+    });
 
     app.get("/sellerOrder", async (req, res) => {
       try {
         const sellerEmail = req.query.email;
-        const result = await bookingCollection.find({ seller: sellerEmail }).toArray();
+        const result = await bookingCollection
+          .find({ seller: sellerEmail })
+          .toArray();
         res.send({
           success: true,
-          data:result
-        })
+          data: result,
+        });
       } catch (error) {
         res.send({
           success: false,
-          message: error.message
-        })
+          message: error.message,
+        });
       }
-    })
+    });
 
     app.delete("/deleteOrder/:id", async (req, res) => {
       try {
