@@ -898,11 +898,32 @@ async function run() {
 
     app.get("/allBookings", async (req, res) => {
       try {
+        const page = req.query.page;
+        // const skip = req.query.skip;
         const result = await bookingCollection.find({}).toArray();
+        const result2 = await bookingCollection
+          .find({})
+          .skip(page * 10)
+          .limit(10)
+          .toArray();
+        console.log("Page in backend" + page, result2);
         res.send({
           success: true,
-          data: result,
+          length: result.length,
+          data: result2,
         });
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        });
+      }
+    });
+
+    app.get("/limitedBookings", async (req, res) => {
+      try {
+        const page = req.query.page;
+        const result = await bookingCollection.find({});
       } catch (error) {
         res.send({
           success: false,
