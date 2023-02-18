@@ -16,7 +16,6 @@ require("dotenv").config();
 
 // stripe key hriday
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-// console.log(stripe);
 
 //Middlware
 app.use(express.json());
@@ -470,6 +469,55 @@ async function run() {
       }
     });
 
+    //campaign service delete
+    app.patch("/campaignService", async (req, res) => {
+      try {
+        const name = req.query.name;
+
+        const campaign = await campaignCollection.find({}).toArray();
+        const { services } = campaign[0];
+        console.log(services, "service check in backend");
+        const findService = services.find(
+          (service) => service?.serviceName === name
+        );
+        // const updateService = [...services, findService];
+        // services.push();
+        const removedElement = services.splice(findService, 1);
+        const filter = campaign[0];
+        const options = { upsert: true };
+        const updatedDoc = {
+          $set: {
+            services: services,
+          },
+        };
+        const result = await campaignCollection.updateOne(
+          filter,
+          updatedDoc,
+          options
+        );
+        const filter1 = { name: name };
+        const updatedDoc1 = {
+          $set: {
+            discountPrice: "",
+          },
+        };
+        const result2 = await serviceCollection.updateOne(
+          filter1,
+          updatedDoc1,
+          options
+        );
+        req.send({
+          success: true,
+          message: "Successfully Deleted this Service!",
+        });
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        });
+      }
+    });
+
     app.patch("/startCamp", async (req, res) => {
       try {
         const data = req.body;
@@ -585,7 +633,6 @@ async function run() {
         const reviews = await reviewCollection
           .find({ service: name })
           .toArray();
-        console.log(reviews);
         res.send({
           success: true,
           data: result,
@@ -603,7 +650,6 @@ async function run() {
       try {
         const id = req.query.id;
         const data = req.body;
-        console.log(data);
         const result = await reviewCollection.insertOne(data);
         // res.send("feedback find");
         const searchobj = await serviceCollection.findOne({
@@ -640,9 +686,7 @@ async function run() {
       try {
         const booking = req.body;
         const price = booking.price;
-        console.log("payment intended", booking);
         const amount = price * 100;
-        console.log("total amount", amount);
 
         const paymentIntent = await stripe.paymentIntents.create({
           currency: "usd",
@@ -664,7 +708,6 @@ async function run() {
     app.post("/payments", confirmmail, async (req, res) => {
       try {
         const payment = req.body;
-        // console.log(payment)
         const result = await paymentsCollection.insertOne(payment);
         const id = payment.id;
         const filter = { _id: ObjectId(id) };
@@ -708,7 +751,6 @@ async function run() {
     app.get("/servicePayment/:id", async (req, res) => {
       try {
         const id = req.params.id;
-        // console.log(id);
         const result = await bookingCollection.findOne({ _id: ObjectId(id) });
         res.send({
           success: true,
@@ -804,7 +846,6 @@ async function run() {
       try {
         const id = req.query.id;
         const data = req.body;
-        console.log("object", id, data);
         const filter = { _id: ObjectId(id) };
         const options = { upsert: true };
         const updatedDoc = {
@@ -880,7 +921,6 @@ async function run() {
     app.get("/bookings", async (req, res) => {
       try {
         const email = req.query.email;
-        // console.log(id);
         const result = await bookingCollection
           .find({ userEmail: email })
           .toArray();
@@ -898,11 +938,31 @@ async function run() {
 
     app.get("/allBookings", async (req, res) => {
       try {
+        const page = req.query.page;
+        // const skip = req.query.skip;
         const result = await bookingCollection.find({}).toArray();
+        const result2 = await bookingCollection
+          .find({})
+          .skip(page * 10)
+          .limit(10)
+          .toArray();
         res.send({
           success: true,
-          data: result,
+          length: result.length,
+          data: result2,
         });
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        });
+      }
+    });
+
+    app.get("/limitedBookings", async (req, res) => {
+      try {
+        const page = req.query.page;
+        const result = await bookingCollection.find({});
       } catch (error) {
         res.send({
           success: false,
