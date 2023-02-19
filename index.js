@@ -473,21 +473,16 @@ async function run() {
     app.patch("/campaignService", async (req, res) => {
       try {
         const name = req.query.name;
-
-        const campaign = await campaignCollection.find({}).toArray();
-        const { services } = campaign[0];
-        console.log(services, "service check in backend");
-        const findService = services.find(
-          (service) => service?.serviceName === name
-        );
-        // const updateService = [...services, findService];
-        // services.push();
-        const removedElement = services.splice(findService, 1);
-        const filter = campaign[0];
+        const camp = req.query.camp;
+        const campaign = await campaignCollection.findOne({campaignName:camp})
+        const findService = campaign.services.filter(
+          (service) => service.name !== name
+          );
+        const filter = campaign;
         const options = { upsert: true };
         const updatedDoc = {
           $set: {
-            services: services,
+            services:findService,
           },
         };
         const result = await campaignCollection.updateOne(
@@ -506,7 +501,7 @@ async function run() {
           updatedDoc1,
           options
         );
-        req.send({
+        res.send({
           success: true,
           message: "Successfully Deleted this Service!",
         });
@@ -517,6 +512,8 @@ async function run() {
         });
       }
     });
+
+
 
     app.patch("/startCamp", async (req, res) => {
       try {
@@ -594,9 +591,10 @@ async function run() {
     app.get("/campaign", async (req, res) => {
       try {
         const result = await campaignCollection.find({}).toArray();
+        const campaign = result[0];
         res.send({
           success: true,
-          data: result,
+          data: campaign,
         });
       } catch (error) {
         res.send({
@@ -736,9 +734,15 @@ async function run() {
           .find({})
           .project({ _id: 0, price: 1, date: 1 })
           .toArray();
+        const users = await userCollection.find({}).toArray();
+        const services = await serviceCollection.find({}).toArray();
+        const orders = await bookingCollection.find({}).toArray();
         res.send({
           success: true,
           data: result,
+          users: users?.length,
+          services: services.length,
+          orders:orders.length
         });
       } catch (error) {
         res.send({
