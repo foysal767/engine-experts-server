@@ -52,6 +52,9 @@ async function run() {
     const locationCollection = client
       .db("Engine-Experts")
       .collection("locations");
+    const subscribeCollection = client
+      .db("Engine-Experts")
+      .collection("subscriber");
 
     // verify jwt middleware
     function verifyJWT(req, res, next) {
@@ -169,10 +172,14 @@ async function run() {
     app.get("/users", async (req, res) => {
       try {
         const type = req.query.type;
-        const result = await userCollection.find({ accType: type }).toArray();
+        const page = req.query.page;
+        const result = await userCollection.find({ accType: type }).skip(page * 10).limit(10).toArray();
+        const result2 = await userCollection.find({ accType: type }).toArray();
+
         res.send({
           success: true,
           data: result,
+          length: result2.length
         });
       } catch (error) {
         res.send({
@@ -1155,6 +1162,47 @@ async function run() {
       }
     });
 
+    // subscriber added by jabed
+
+  app.get('/subscriber', async(req, res) => {
+    try {
+      const result = await subscribeCollection.find({}).toArray();
+      res.send({
+        success: true,
+        data: result
+      })
+    } catch (error) {
+      res.send({
+        success: false,
+        message: error.message
+      })
+    }
+  })
+
+  app.post('/subscriber', async(req, res) => {
+    try {
+      const add = req.body;
+      const find = await subscribeCollection.findOne({email: add.email});
+      if(find){
+        res.send({
+          success: false,
+          message: "Already subscribed with this email"
+        })
+        return;
+      }
+      const result = await subscribeCollection.insertOne(add);
+      res.send({
+        success: true,
+        message: "Thanks for subscribe"
+      })
+    } catch (error) {
+      res.send({
+        success: false,
+        message: error.message
+      })
+    }
+  })
+
     //======================Contact form Code Start By Nazrul===========================================
 
     app.post("/contactform", getEmail);
@@ -1163,6 +1211,7 @@ async function run() {
   } catch (error) {
     console.log(error.name, error.message);
   }
+
 }
 run();
 
