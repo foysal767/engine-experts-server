@@ -480,15 +480,17 @@ async function run() {
       try {
         const name = req.query.name;
         const camp = req.query.camp;
-        const campaign = await campaignCollection.findOne({campaignName:camp})
+        const campaign = await campaignCollection.findOne({
+          campaignName: camp,
+        });
         const findService = campaign.services.filter(
           (service) => service.name !== name
-          );
+        );
         const filter = campaign;
         const options = { upsert: true };
         const updatedDoc = {
           $set: {
-            services:findService,
+            services: findService,
           },
         };
         const result = await campaignCollection.updateOne(
@@ -518,8 +520,6 @@ async function run() {
         });
       }
     });
-
-
 
     app.patch("/startCamp", async (req, res) => {
       try {
@@ -733,12 +733,42 @@ async function run() {
         const users = await userCollection.find({}).toArray();
         const services = await serviceCollection.find({}).toArray();
         const orders = await bookingCollection.find({}).toArray();
+        const weeklyOrder = await paymentsCollection
+          .find({
+            date: {
+              $gte: new Date(
+                new Date().getTime() - 7 * 24 * 60 * 60 * 1000
+              ).toLocaleDateString(),
+              $lte: new Date().toLocaleDateString(),
+            },
+          })
+          .project({ _id: 0, price: 1 })
+          .toArray();
+        const monthlyOrder = await paymentsCollection
+          .find({
+            date: {
+              $gte: new Date(
+                new Date().getTime() - 30 * 24 * 60 * 60 * 1000
+              ).toLocaleDateString(),
+              $lte: new Date().toLocaleDateString(),
+            },
+          })
+          .project({ _id: 0, price: 1 })
+          .toArray();
+        const dailyOrder = await paymentsCollection
+          .find({ date: new Date().toLocaleDateString() })
+          .project({ _id: 0, price: 1 })
+          .toArray();
+
         res.send({
           success: true,
           data: result,
           users: users?.length,
           services: services.length,
-          orders:orders.length
+          orders: orders.length,
+          weeklyRevenue: weeklyOrder,
+          monthlyRevenue: monthlyOrder,
+          dailyRevenue: dailyOrder,
         });
       } catch (error) {
         res.send({
