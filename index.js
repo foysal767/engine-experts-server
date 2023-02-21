@@ -173,13 +173,17 @@ async function run() {
       try {
         const type = req.query.type;
         const page = req.query.page;
-        const result = await userCollection.find({ accType: type }).skip(page * 10).limit(10).toArray();
+        const result = await userCollection
+          .find({ accType: type })
+          .skip(page * 10)
+          .limit(10)
+          .toArray();
         // const result2 = await userCollection.find({ accType: type }).toArray();
 
         res.send({
           success: true,
           data: result,
-          length: result2.length
+          length: result2.length,
         });
       } catch (error) {
         res.send({
@@ -584,7 +588,6 @@ async function run() {
       }
     });
 
-
     app.get("/campaign", async (req, res) => {
       try {
         const result = await campaignCollection.find({}).toArray();
@@ -688,9 +691,7 @@ async function run() {
           amount: amount,
           payment_method_types: ["card"],
         });
-        res.send(
-          paymentIntent
-        );
+        res.send(paymentIntent);
       } catch (error) {
         res.send({
           success: false,
@@ -798,9 +799,7 @@ async function run() {
 
     app.get("/reviews", async (req, res) => {
       try {
-        const result = await reviewCollection
-          .find({})
-          .toArray();
+        const result = await reviewCollection.find({}).toArray();
         const excellentReview = result.filter((data) => data.rating === 5);
         res.send({
           success: true,
@@ -818,9 +817,7 @@ async function run() {
     app.get("/userReviews/:id", async (req, res) => {
       try {
         const email = req.params.id;
-        const result = await reviewCollection
-          .find({ email: email })
-          .toArray();
+        const result = await reviewCollection.find({ email: email }).toArray();
         res.send({
           success: true,
           data: result,
@@ -944,7 +941,9 @@ async function run() {
     app.get("/allBookings", async (req, res) => {
       try {
         const page = req.query.page;
-        const result = await bookingCollection.find({payment:"paid"}).toArray();
+        const result = await bookingCollection
+          .find({ payment: "paid" })
+          .toArray();
         const result2 = await bookingCollection
           .find({})
           .skip(page * 10)
@@ -1028,7 +1027,6 @@ async function run() {
       }
     });
 
-
     app.get("/sellerOrder", async (req, res) => {
       try {
         const sellerEmail = req.query.email;
@@ -1047,7 +1045,6 @@ async function run() {
         });
       }
     });
-
 
     app.get("/completedOrder", async (req, res) => {
       try {
@@ -1068,6 +1065,21 @@ async function run() {
       }
     });
 
+    app.get("/orderDetails", async (req, res) => {
+      try {
+        const id = req.query.id;
+        const result = await bookingCollection.findOne({_id:ObjectId(id)})
+        res.send({
+          success: true,
+          data: result
+        })
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        });
+      }
+    });
 
     app.patch("/sellerOrder/:id", async (req, res) => {
       try {
@@ -1129,44 +1141,44 @@ async function run() {
 
     // subscriber added by jabed
 
-  app.get('/subscriber', async(req, res) => {
-    try {
-      const result = await subscribeCollection.find({}).toArray();
-      res.send({
-        success: true,
-        data: result
-      })
-    } catch (error) {
-      res.send({
-        success: false,
-        message: error.message
-      })
-    }
-  })
-
-  app.post('/subscriber', async(req, res) => {
-    try {
-      const add = req.body;
-      const find = await subscribeCollection.findOne({email: add.email});
-      if(find){
+    app.get("/subscriber", async (req, res) => {
+      try {
+        const result = await subscribeCollection.find({}).toArray();
+        res.send({
+          success: true,
+          data: result,
+        });
+      } catch (error) {
         res.send({
           success: false,
-          message: "Already subscribed with this email"
-        })
-        return;
+          message: error.message,
+        });
       }
-      const result = await subscribeCollection.insertOne(add);
-      res.send({
-        success: true,
-        message: "Thanks for subscribe"
-      })
-    } catch (error) {
-      res.send({
-        success: false,
-        message: error.message
-      })
-    }
-  })
+    });
+
+    app.post("/subscriber", async (req, res) => {
+      try {
+        const add = req.body;
+        const find = await subscribeCollection.findOne({ email: add.email });
+        if (find) {
+          res.send({
+            success: false,
+            message: "Already subscribed with this email",
+          });
+          return;
+        }
+        const result = await subscribeCollection.insertOne(add);
+        res.send({
+          success: true,
+          message: "Thanks for subscribe",
+        });
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        });
+      }
+    });
 
     //======================Contact form Code Start By Nazrul===========================================
 
@@ -1176,7 +1188,6 @@ async function run() {
   } catch (error) {
     console.log(error.name, error.message);
   }
-
 }
 run();
 
