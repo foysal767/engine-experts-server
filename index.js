@@ -174,7 +174,7 @@ async function run() {
         const type = req.query.type;
         const page = req.query.page;
         const result = await userCollection.find({ accType: type }).skip(page * 10).limit(10).toArray();
-        const result2 = await userCollection.find({ accType: type }).toArray();
+        // const result2 = await userCollection.find({ accType: type }).toArray();
 
         res.send({
           success: true,
@@ -1085,6 +1085,21 @@ async function run() {
         });
       }
     });
+
+    app.get("/orderDetails", async(req, res) => {
+      try {
+        const id = req.query.id;
+        const result = await bookingCollection.findOne({_id:ObjectId(id)});
+        res.send({
+          success: true,
+          data: result
+        })
+      } catch (error) {
+        success: false;
+        message: error.message
+      }
+    })
+
     app.get("/completedOrder", async (req, res) => {
       try {
         const sellerEmail = req.query.email;
