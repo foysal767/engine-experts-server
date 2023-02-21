@@ -366,7 +366,6 @@ async function run() {
         const campaign = {
           campaignName: data.campName,
           services: [],
-          // startDate: data.startDate,
           endDate: data.endedDate,
         };
         const namedCam = await campaignCollection.findOne({
@@ -585,15 +584,6 @@ async function run() {
       }
     });
 
-    // app.patch("/updateDate", async (req, res) => {
-    //   try {
-    //   } catch (error) {
-    //     res.send({
-    //       success: false,
-    //       message: error.message,
-    //     });
-    //   }
-    // });
 
     app.get("/campaign", async (req, res) => {
       try {
@@ -699,7 +689,6 @@ async function run() {
           payment_method_types: ["card"],
         });
         res.send(
-          // clientSecret: paymentIntent.client_secret,
           paymentIntent
         );
       } catch (error) {
@@ -811,19 +800,8 @@ async function run() {
       try {
         const result = await reviewCollection
           .find({})
-          // .project({ reviews: 1, _id: 0 })
           .toArray();
         const excellentReview = result.filter((data) => data.rating === 5);
-
-        // const allReviews = [];
-        // result.forEach((data) => {
-        //   const singleReview = data.reviews;
-        //   singleReview.map((review) => allReviews.push(review));
-        // });
-        // const filter = allReviews.filter(
-        //   (excellent) => excellent.rating === "Excellent"
-        // );
-
         res.send({
           success: true,
           data: excellentReview,
@@ -842,19 +820,7 @@ async function run() {
         const email = req.params.id;
         const result = await reviewCollection
           .find({ email: email })
-          // .project({ reviews: 1, _id: 0, name: 1, image: 1 })
           .toArray();
-        // const allReviews = [];
-        // result.forEach((data) => {
-        //   const { name, image, reviews } = data;
-        //   reviews?.map((review) => {
-        //     const singleData = { name, image, review };
-        //     allReviews.push(singleData);
-        //   });
-        // });
-        // const filter = allReviews.filter(
-        //   (excellent) => excellent.review.email === email
-        // );
         res.send({
           success: true,
           data: result,
@@ -943,8 +909,6 @@ async function run() {
         }
 
         const result = await bookingCollection.insertOne(data);
-        //added confarmation mail by nazrul
-        // sendBookingEmail(data)
 
         res.send({
           success: true,
@@ -980,8 +944,7 @@ async function run() {
     app.get("/allBookings", async (req, res) => {
       try {
         const page = req.query.page;
-        // const skip = req.query.skip;
-        const result = await bookingCollection.find({}).toArray();
+        const result = await bookingCollection.find({payment:"paid"}).toArray();
         const result2 = await bookingCollection
           .find({})
           .skip(page * 10)
@@ -1003,7 +966,7 @@ async function run() {
     app.get("/limitedBookings", async (req, res) => {
       try {
         const page = req.query.page;
-        const result = await bookingCollection.find({});
+        const result = await bookingCollection.find({}).toArray();
       } catch (error) {
         res.send({
           success: false,
@@ -1014,12 +977,10 @@ async function run() {
 
     app.get("/getSeller", async (req, res) => {
       try {
-        // const name = req.query.name;
         const sellers = await userCollection
           .find({ accType: "verifiedSeller" })
           .project({ _id: 0, email: 1, expert: 1 })
           .toArray();
-        // const specifyedSeller = sellers.filter(seller => seller.expert === name)
         res.send({
           success: true,
           data: sellers,
@@ -1067,6 +1028,7 @@ async function run() {
       }
     });
 
+
     app.get("/sellerOrder", async (req, res) => {
       try {
         const sellerEmail = req.query.email;
@@ -1086,19 +1048,6 @@ async function run() {
       }
     });
 
-    app.get("/orderDetails", async(req, res) => {
-      try {
-        const id = req.query.id;
-        const result = await bookingCollection.findOne({_id:ObjectId(id)});
-        res.send({
-          success: true,
-          data: result
-        })
-      } catch (error) {
-        success: false;
-        message: error.message
-      }
-    })
 
     app.get("/completedOrder", async (req, res) => {
       try {
@@ -1118,6 +1067,7 @@ async function run() {
         });
       }
     });
+
 
     app.patch("/sellerOrder/:id", async (req, res) => {
       try {
