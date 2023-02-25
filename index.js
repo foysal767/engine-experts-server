@@ -23,8 +23,7 @@ app.use(cors());
 
 // connect mongodb
 
-const uri =
-  "mongodb+srv://Engine-Experts:tOh0xpWQt88VUSg2@cluster0.zkuborh.mongodb.net/?retryWrites=true&w=majority";
+const uri = `${process.env.uri}`;
 const client = new MongoClient(uri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -76,9 +75,9 @@ async function run() {
     async function isAdmin(req, res, next) {
       const decodedEmail = decoded.email;
       // const result = await adminCollection.find({}).project({email:1}).toArray();
-      const result = await adminCollection.find({}).toArray();
-      const email = result.email;
-      if (decodedEmail !== email) {
+      const result = await adminCollection.findOne({ email: decodedEmail });
+      // const email = result.email;
+      if (!result) {
         return res.status(403).send({ message: "forbidden access" });
       }
       next();
@@ -93,7 +92,7 @@ async function run() {
       try {
         const user = req.body;
         const token = jwt.sign(user, process.env.JWT_SECRET, {
-          expiresIn: "10s",
+          expiresIn: "1d",
         });
         res.send({
           token,
@@ -623,9 +622,14 @@ async function run() {
       }
     });
 
-    app.get("/servicedetails", async (req, res) => {
+    app.get("/servicedetails", verifyJWT, async (req, res) => {
       try {
         const name = req.query.id;
+        const email = req.query.email;
+        const decodedEmail = req.decoded.email;
+        if (decodedEmail !== email) {
+          res.status(401).send({ message: "Unauthorized Access" });
+        }
         const query = { name: name };
         const result = await serviceCollection.findOne(query);
         const reviews = await reviewCollection
@@ -1058,9 +1062,13 @@ async function run() {
       }
     });
 
-    app.get("/completedOrder", async (req, res) => {
+    app.get("/completedOrder", verifyJWT, async (req, res) => {
       try {
         const sellerEmail = req.query.email;
+        const decodedEmail = req.decoded.email;
+        if (decodedEmail !== sellerEmail) {
+          res.status(401).send({ message: "Unauthorized Access" });
+        }
         const result = await bookingCollection
           .find({ seller: sellerEmail })
           .toArray();
@@ -1068,6 +1076,22 @@ async function run() {
         res.send({
           success: true,
           data: filter,
+        });
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        });
+      }
+    });
+
+    app.get("/orderDetails", async (req, res) => {
+      try {
+        const id = req.query.id;
+        const result = await bookingCollection.findOne({ _id: ObjectId(id) });
+        res.send({
+          success: true,
+          data: result,
         });
       } catch (error) {
         res.send({
