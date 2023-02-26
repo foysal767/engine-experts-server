@@ -946,7 +946,7 @@ async function run() {
         const page = req.query.page;
         const result = await bookingCollection.find({payment:"paid"}).toArray();
         const result2 = await bookingCollection
-          .find({})
+          .find({payment:"paid"})
           .skip(page * 10)
           .limit(10)
           .toArray();
