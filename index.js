@@ -14,7 +14,7 @@ const confirmmail = require("./middleware/confirmMail");
 const getEmail = require("./middleware/getEmail");
 require("dotenv").config();
 
-// stripe key hriday
+// stripe key
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 //Middlware
@@ -74,9 +74,7 @@ async function run() {
     // check admin middleware
     async function isAdmin(req, res, next) {
       const decodedEmail = decoded.email;
-      // const result = await adminCollection.find({}).project({email:1}).toArray();
       const result = await adminCollection.findOne({ email: decodedEmail });
-      // const email = result.email;
       if (!result) {
         return res.status(403).send({ message: "forbidden access" });
       }
@@ -952,7 +950,7 @@ async function run() {
           .find({ payment: "paid" })
           .toArray();
         const result2 = await bookingCollection
-          .find({payment:"paid"})
+          .find({ payment: "paid" })
           .skip(page * 10)
           .limit(10)
           .toArray();
