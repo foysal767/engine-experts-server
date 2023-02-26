@@ -23,8 +23,7 @@ app.use(cors());
 
 // connect mongodb
 
-const uri =
-  "mongodb+srv://Engine-Experts:tOh0xpWQt88VUSg2@cluster0.zkuborh.mongodb.net/?retryWrites=true&w=majority";
+const uri = `${process.env.uri}`;
 const client = new MongoClient(uri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -76,9 +75,9 @@ async function run() {
     async function isAdmin(req, res, next) {
       const decodedEmail = decoded.email;
       // const result = await adminCollection.find({}).project({email:1}).toArray();
-      const result = await adminCollection.find({}).toArray();
-      const email = result.email;
-      if (decodedEmail !== email) {
+      const result = await adminCollection.findOne({ email: decodedEmail });
+      // const email = result.email;
+      if (!result) {
         return res.status(403).send({ message: "forbidden access" });
       }
       next();
@@ -93,7 +92,7 @@ async function run() {
       try {
         const user = req.body;
         const token = jwt.sign(user, process.env.JWT_SECRET, {
-          expiresIn: "12h",
+          expiresIn: "1d",
         });
         res.send({
           token,
@@ -173,13 +172,17 @@ async function run() {
       try {
         const type = req.query.type;
         const page = req.query.page;
-        const result = await userCollection.find({ accType: type }).skip(page * 10).limit(10).toArray();
+        const result = await userCollection
+          .find({ accType: type })
+          .skip(page * 10)
+          .limit(10)
+          .toArray();
         const result2 = await userCollection.find({ accType: type }).toArray();
 
         res.send({
           success: true,
           data: result,
-          length: result2.length
+          length: result2.length,
         });
       } catch (error) {
         res.send({
@@ -584,7 +587,6 @@ async function run() {
       }
     });
 
-
     app.get("/campaign", async (req, res) => {
       try {
         const result = await campaignCollection.find({}).toArray();
@@ -620,9 +622,14 @@ async function run() {
       }
     });
 
-    app.get("/servicedetails", async (req, res) => {
+    app.get("/servicedetails", verifyJWT, async (req, res) => {
       try {
         const name = req.query.id;
+        const email = req.query.email;
+        const decodedEmail = req.decoded.email;
+        if (decodedEmail !== email) {
+          res.status(401).send({ message: "Unauthorized Access" });
+        }
         const query = { name: name };
         const result = await serviceCollection.findOne(query);
         const reviews = await reviewCollection
@@ -688,9 +695,7 @@ async function run() {
           amount: amount,
           payment_method_types: ["card"],
         });
-        res.send(
-          paymentIntent
-        );
+        res.send(paymentIntent);
       } catch (error) {
         res.send({
           success: false,
@@ -798,9 +803,7 @@ async function run() {
 
     app.get("/reviews", async (req, res) => {
       try {
-        const result = await reviewCollection
-          .find({})
-          .toArray();
+        const result = await reviewCollection.find({}).toArray();
         const excellentReview = result.filter((data) => data.rating === 5);
         res.send({
           success: true,
@@ -815,12 +818,14 @@ async function run() {
       }
     });
 
-    app.get("/userReviews/:id", async (req, res) => {
+    app.get("/userReviews/:id", verifyJWT, async (req, res) => {
       try {
         const email = req.params.id;
-        const result = await reviewCollection
-          .find({ email: email })
-          .toArray();
+        const decodedEmail = req.decoded.email;
+        if (decodedEmail !== email) {
+          res.status(401).send({ message: "unauthorized access" });
+        }
+        const result = await reviewCollection.find({ email: email }).toArray();
         res.send({
           success: true,
           data: result,
@@ -923,9 +928,13 @@ async function run() {
       }
     });
 
-    app.get("/bookings", async (req, res) => {
+    app.get("/bookings", verifyJWT, async (req, res) => {
       try {
         const email = req.query.email;
+        const decodedEmail = req.decoded.email;
+        if (decodedEmail !== email) {
+          res.status(401).send({ message: "Unauthorized Access" });
+        }
         const result = await bookingCollection
           .find({ userEmail: email })
           .toArray();
@@ -944,7 +953,9 @@ async function run() {
     app.get("/allBookings", async (req, res) => {
       try {
         const page = req.query.page;
-        const result = await bookingCollection.find({payment:"paid"}).toArray();
+        const result = await bookingCollection
+          .find({ payment: "paid" })
+          .toArray();
         const result2 = await bookingCollection
           .find({payment:"paid"})
           .skip(page * 10)
@@ -1028,10 +1039,13 @@ async function run() {
       }
     });
 
-
-    app.get("/sellerOrder", async (req, res) => {
+    app.get("/sellerOrder", verifyJWT, async (req, res) => {
       try {
         const sellerEmail = req.query.email;
+        const decodedEmail = req.decoded.email;
+        if (decodedEmail !== sellerEmail) {
+          res.status(401).send({ message: "Unauthorized Access" });
+        }
         const result = await bookingCollection
           .find({ seller: sellerEmail })
           .toArray();
@@ -1048,10 +1062,13 @@ async function run() {
       }
     });
 
-
-    app.get("/completedOrder", async (req, res) => {
+    app.get("/completedOrder", verifyJWT, async (req, res) => {
       try {
         const sellerEmail = req.query.email;
+        const decodedEmail = req.decoded.email;
+        if (decodedEmail !== sellerEmail) {
+          res.status(401).send({ message: "Unauthorized Access" });
+        }
         const result = await bookingCollection
           .find({ seller: sellerEmail })
           .toArray();
@@ -1068,6 +1085,21 @@ async function run() {
       }
     });
 
+    app.get("/orderDetails", async (req, res) => {
+      try {
+        const id = req.query.id;
+        const result = await bookingCollection.findOne({ _id: ObjectId(id) });
+        res.send({
+          success: true,
+          data: result,
+        });
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        });
+      }
+    });
 
     app.patch("/sellerOrder/:id", async (req, res) => {
       try {
@@ -1129,44 +1161,44 @@ async function run() {
 
     // subscriber added by jabed
 
-  app.get('/subscriber', async(req, res) => {
-    try {
-      const result = await subscribeCollection.find({}).toArray();
-      res.send({
-        success: true,
-        data: result
-      })
-    } catch (error) {
-      res.send({
-        success: false,
-        message: error.message
-      })
-    }
-  })
-
-  app.post('/subscriber', async(req, res) => {
-    try {
-      const add = req.body;
-      const find = await subscribeCollection.findOne({email: add.email});
-      if(find){
+    app.get("/subscriber", async (req, res) => {
+      try {
+        const result = await subscribeCollection.find({}).toArray();
+        res.send({
+          success: true,
+          data: result,
+        });
+      } catch (error) {
         res.send({
           success: false,
-          message: "Already subscribed with this email"
-        })
-        return;
+          message: error.message,
+        });
       }
-      const result = await subscribeCollection.insertOne(add);
-      res.send({
-        success: true,
-        message: "Thanks for subscribe"
-      })
-    } catch (error) {
-      res.send({
-        success: false,
-        message: error.message
-      })
-    }
-  })
+    });
+
+    app.post("/subscriber", async (req, res) => {
+      try {
+        const add = req.body;
+        const find = await subscribeCollection.findOne({ email: add.email });
+        if (find) {
+          res.send({
+            success: false,
+            message: "Already subscribed with this email",
+          });
+          return;
+        }
+        const result = await subscribeCollection.insertOne(add);
+        res.send({
+          success: true,
+          message: "Thanks for subscribe",
+        });
+      } catch (error) {
+        res.send({
+          success: false,
+          message: error.message,
+        });
+      }
+    });
 
     //======================Contact form Code Start By Nazrul===========================================
 
@@ -1176,7 +1208,6 @@ async function run() {
   } catch (error) {
     console.log(error.name, error.message);
   }
-
 }
 run();
 
